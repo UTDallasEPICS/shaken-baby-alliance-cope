@@ -2,38 +2,49 @@
 const colorMode = useColorMode()
 
 const isDark = computed({
-  get () {
-    return colorMode.value === 'dark'
-  },
-  set () {
-    colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
-  }
+  get() { return colorMode.value === 'dark' },
+  set() { colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark' }
 })
+
+
+async function logout() {
+  await authClient.signOut()
+  await navigateTo('/auth', { external: true })
+}
 </script>
 
 <template>
   <UApp>
-    <div class="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-      <header class="border-b border-gray-200 dark:border-gray-800 bg-white/75 dark:bg-gray-900/75 backdrop-blur-md sticky top-0 z-50">
+    <div class="min-h-screen bg-gray-100 dark:bg-gray-950">
+      <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
         <UContainer class="flex items-center justify-between h-16">
-          <NuxtLink to="/" class="text-xl font-bold flex items-center gap-2">
-            <UIcon name="i-heroicons-cube-transparent" class="w-8 h-8 text-primary-500" />
-            <span>Nuxt Template</span>
-          </NuxtLink>
-          
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-4">
+            <span class="font-bold text-2xl">The Shaken Baby Alliance</span>
+          </div>
+
+          <div class="[&_input::placeholder]:text-grey-300">
+            <UInput v-model="search" placeholder="Search..." icon="i-heroicons-magnifying-glass-20-solid" size="lg" class="w-96" :ui="{ base: '!bg-gray-200 !border-2 !border-black'  }" />
+          </div>
+
+          <div class="flex items-center gap-4">
             <UButton
               :icon="isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'"
               color="neutral"
               variant="ghost"
               @click="isDark = !isDark"
-              aria-label="Toggle Theme"
+            />
+
+            <UButton
+              color="error"
+              variant="soft"
+              icon="i-heroicons-arrow-right-on-rectangle-20-solid"
+              label="Logout"
+              @click="logout"
             />
           </div>
         </UContainer>
       </header>
-
-      <main class="flex-1">
+      <main>
         <NuxtPage />
       </main>
     </div>
