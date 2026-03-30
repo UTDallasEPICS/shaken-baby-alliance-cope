@@ -16,16 +16,4 @@ export const auth = betterAuth({
 	database: prismaAdapter(prisma, {
 		provider: "sqlite",
 	}),
-	plugins: [
-		emailOTP({
-			async sendVerificationOTP({ email, otp, type }) {
-				await transporter.sendMail({
-					from: process.env.EMAIL_USER,
-					to: email,
-					subject: "OTP",
-					html: `${otp}`,
-				})
-			}
-		})
-	]
 });

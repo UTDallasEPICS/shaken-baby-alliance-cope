@@ -1,41 +1,48 @@
 <script setup lang="ts">
-const colorMode = useColorMode()
-
-const isDark = computed({
-  get () {
-    return colorMode.value === 'dark'
-  },
-  set () {
-    colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
-  }
-})
+// Used by the header search input (from spring2026).
+const search = ref('')
 </script>
 
 <template>
   <UApp>
-    <div class="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-      <header class="border-b border-gray-200 dark:border-gray-800 bg-white/75 dark:bg-gray-900/75 backdrop-blur-md sticky top-0 z-50">
-        <UContainer class="flex items-center justify-between h-16">
-          <NuxtLink to="/" class="text-xl font-bold flex items-center gap-2">
-            <UIcon name="i-heroicons-cube-transparent" class="w-8 h-8 text-primary-500" />
-            <span>Nuxt Template</span>
-          </NuxtLink>
-          
-          <div class="flex items-center gap-2">
-            <UButton
-              :icon="isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'"
-              color="neutral"
-              variant="ghost"
-              @click="isDark = !isDark"
-              aria-label="Toggle Theme"
-            />
-          </div>
-        </UContainer>
-      </header>
+    <div
+      class="min-h-screen flex bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300"
+    >
+      <SidebarNav />
 
-      <main class="flex-1">
-        <NuxtPage />
-      </main>
+      <div class="flex-1 flex flex-col">
+        <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+          <UContainer class="flex items-center justify-between h-16">
+            <div class="[&_input::placeholder]:text-grey-300 w-full max-w-xl">
+              <UInput
+                v-model="search"
+                placeholder="Search..."
+                icon="i-heroicons-magnifying-glass-20-solid"
+                size="lg"
+                class="w-full"
+                :ui="{ base: '!bg-gray-200 !border-2 !border-black' }"
+              />
+            </div>
+
+            <div class="flex items-center gap-2">
+              <UButton
+                icon="i-heroicons-bell-20-solid"
+                color="neutral"
+                variant="ghost"
+                aria-label="Notifications"
+              />
+              <div class="hidden sm:flex items-center gap-2 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700">
+                <div class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-semibold flex items-center justify-center">A</div>
+                <span class="text-xs font-medium text-gray-700 dark:text-gray-200">Admin</span>
+              </div>
+            </div>
+          </UContainer>
+        </header>
+
+        <main class="flex-1">
+          <NuxtPage />
+        </main>
+      </div>
     </div>
   </UApp>
 </template>
