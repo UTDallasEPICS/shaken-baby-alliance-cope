@@ -73,3 +73,122 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+//////////////////////////////////////////////////////////////
+// PROJECT TABLES START HERE
+//////////////////////////////////////////////////////////////
+
+model Caregiver {
+  id               String    @id @default(cuid())
+  name             String?
+  phone            String    @unique
+  email            String?
+  address          String?
+  city             String?
+  state            String?
+  zip              String?
+  firstContactDate DateTime  @default(now())
+  lastInteraction  DateTime?
+  status           String    @default("ACTIVE")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  messages Message[]
+
+  @@map("caregiver")
+}
+
+model Keyword {
+  id          String   @id @default(cuid())
+  keyword     String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workflows Workflow[]
+
+  @@map("keyword")
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  keywordId   String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  keyword Keyword        @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  steps   WorkflowStep[]
+
+  @@index([keywordId])
+  @@map("workflow")
+}
+
+model WorkflowStep {
+  id          String   @id @default(cuid())
+  workflowId  String
+  stepOrder   Int
+  title       String?
+  messageText String
+  messageType String   @default("TEXT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workflow Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  options  WorkflowOption[]
+
+  @@unique([workflowId, stepOrder])
+  @@index([workflowId])
+  @@map("workflow_step")
+}
+
+model WorkflowOption {
+  id         String   @id @default(cuid())
+  stepId     String
+  optionText String
+  nextStepId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  step WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([stepId])
+  @@map("workflow_option")
+}
+
+model Message {
+  id                String   @id @default(cuid())
+  caregiverId       String?
+  phone             String
+  messageText       String
+  direction         String
+  keywordDetected   String?
+  providerMessageId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  caregiver Caregiver?   @relation(fields: [caregiverId], references: [id], onDelete: SetNull)
+  logs      MessageLog[]
+
+  @@index([caregiverId])
+  @@index([phone])
+  @@map("message")
+}
+
+model MessageLog {
+  id               String   @id @default(cuid())
+  messageId        String
+  status           String   @default("PENDING")
+  providerResponse String?
+  errorMessage     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("message_log")
+}
