@@ -1,20 +1,24 @@
 generator client {
   provider = "prisma-client"
-  output   = "./generated"
+
 }
 
 datasource db {
   provider = "sqlite"
+ 
 }
 
 model User {
   id            String    @id
-  name          String
+  name          String    @unique
   email         String
   emailVerified Boolean   @default(false)
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  role          String    @default("user")
+  username        String?   @unique
+  displayUsername String?
   sessions      Session[]
   accounts      Account[]
 
