@@ -37,8 +37,8 @@ try {
       password: password.value, 
     }) */
 
-    const { data, error } = await authClient.signIn.username({
-      username: userId.value,
+    const { data, error } = await authClient.signIn.email({
+      email: userId.value,
       password: password.value, 
     }) 
     if (error) {
