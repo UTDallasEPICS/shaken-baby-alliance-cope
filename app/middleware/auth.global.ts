@@ -1,4 +1,3 @@
-
 import { authClient } from '../utils/auth-client'
 
 export default defineNuxtRouteMiddleware(async (to) => {
