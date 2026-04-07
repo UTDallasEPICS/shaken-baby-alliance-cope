@@ -31,6 +31,11 @@ const stats = [
 <template>
   <UContainer class="py-8 space-y-6">
 
+    <!-- TEMPORARY BUTTON-->
+     <NuxtLink to="/caregivers">
+        <button> Go to Caregivers</button>
+      </NuxtLink>
+
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>
