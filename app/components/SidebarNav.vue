@@ -4,17 +4,17 @@
   const route = useRoute()
 
   const navItems = computed(() => [
-    { label: 'Dashboard', to: '/', icon: 'i-heroicons-squares-2x2-20-solid' },
-    { label: 'Flows', to: '/flows', icon: 'i-heroicons-arrow-path-20-solid' },
+    { label: 'Dashboard', to: '/dashboard', icon: 'i-heroicons-squares-2x2-20-solid' },
+    { label: 'Messages', to: '/messages', icon: 'i-heroicons-chat-bubble-left-right-20-solid' },
+    { label: 'Message Logs', to: '/message-logs', icon: 'i-heroicons-chat-bubble-bottom-center-text-20-solid' },
+    { label: 'Keywords', to: '/keywords', icon: 'i-heroicons-key-20-solid' },
+    { label: 'Workflows', to: '/workflows', icon: 'i-heroicons-arrow-path-20-solid' },
+    { label: 'Flows', to: '/flows', icon: 'i-heroicons-arrows-right-left-20-solid' },
     { label: 'Templates', to: '/templates', icon: 'i-heroicons-document-text-20-solid' },
     { label: 'Emergency', to: '/emergency', icon: 'i-heroicons-exclamation-circle-20-solid' },
     { label: 'Caregivers', to: '/caregivers', icon: 'i-heroicons-user-group-20-solid' },
     { label: 'Users', to: '/users', icon: 'i-heroicons-shield-check-20-solid' },
-    {
-      label: 'Audit Logs',
-      to: '/audit-logs',
-      icon: 'i-heroicons-clipboard-document-list-20-solid',
-    },
+    { label: 'Audit Logs', to: '/audit-logs', icon: 'i-heroicons-clipboard-document-list-20-solid' },
   ])
 
   function isActive(to: string) {

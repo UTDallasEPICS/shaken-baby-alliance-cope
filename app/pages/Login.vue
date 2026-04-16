@@ -1,8 +1,10 @@
 
 <script setup lang="ts">
+definePageMeta({ layout: false })
 
 import { ref } from 'vue'
 import { authClient } from '~/utils/auth-client'
+import { Heart, User, Lock, ArrowRight } from 'lucide-vue-next'
 
 const router = useRouter();
 // Swapped 'Mail' for 'User' icon
@@ -50,14 +52,7 @@ try {
     console.log('Login successful!')
     
    
-    if ((data.user as any).role === 'admin') {
-      console.log('Welcome Admin! Routing to admin panel...')
-      router.push('/');
-      
-    } else {
-      console.log('Welcome User! Routing to standard dashboard...')
-  router.push('/');
-    }
+    await navigateTo('/dashboard')
 
   } catch (err) {
     console.error('An unexpected error occurred:', err)
