@@ -127,8 +127,6 @@ watch([selectedKeywords, selectedTimeframe], () => { currentPage.value = 1 })
 </script>
 
 <template>
-  <Appheader />
- 
   <UContainer class="py-8 space-y-6">
 
     <div class="flex items-center justify-between">

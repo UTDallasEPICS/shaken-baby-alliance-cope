@@ -1,5 +1,5 @@
 <script setup lang="ts">
-navigateTo('/dashboard')
+navigateTo('/login')
 </script>
 
 <template>
