@@ -5,6 +5,10 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "concurrently \"nuxt dev\" \"prisma studio\"",
+    "dev:clean": "nuxi cleanup && nuxt prepare && nuxt dev",
+    "dev:clean:all": "nuxi cleanup && nuxt prepare && concurrently -c blue,magenta \"nuxt dev\" \"sleep 15 && prisma studio\"",
+    "dev:nuxt": "nuxt dev",
+    "studio": "prisma studio",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",

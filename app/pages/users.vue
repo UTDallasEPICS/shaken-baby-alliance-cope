@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useAppSearch, rowMatchesAppSearch } from '~/composables/useAppSearch'
+
 interface UserRow {
   id: number
   name: string
@@ -8,14 +10,97 @@ interface UserRow {
   status: 'Active' | 'Inactive'
 }
 
-const users: UserRow[] = [
-  { id: 1, name: 'Sarah Johnson', email: 'sarah.johnson@cope.com', role: 'Admin', lastLogin: '2024-03-08 10:30 AM', status: 'Active' },
-  { id: 2, name: 'Michael Chen', email: 'michael.chen@cope.com', role: 'Admin', lastLogin: '2024-03-06 09:15 AM', status: 'Active' },
-  { id: 3, name: 'Emily Davis', email: 'emily.davis@cope.com', role: 'Editor', lastLogin: '2024-03-08 04:45 AM', status: 'Active' },
-  { id: 4, name: 'David Martinez', email: 'david.martinez@cope.com', role: 'Editor', lastLogin: '2024-07-08 04:20 PM', status: 'Active' },
-  { id: 5, name: 'Jessica Thompson', email: 'jessica.thompson@cope.com', role: 'Viewer', lastLogin: '2024-03-04 02:10 PM', status: 'Active' },
-  { id: 6, name: 'Robert Williams', email: 'robert.williams@cope.com', role: 'Viewer', lastLogin: '2024-02-28 11:30 AM', status: 'Inactive' },
-]
+const toast = useToast()
+
+const { data: usersData, refresh: refreshUsers } = await useFetch<UserRow[]>('/api/users', {
+  default: () => [],
+})
+
+const users = computed(() => usersData.value ?? [])
+
+const appSearch = useAppSearch()
+const filteredUsers = computed(() =>
+  users.value.filter((u) =>
+    rowMatchesAppSearch(appSearch.value, u.name, u.email, u.role, u.lastLogin, u.status),
+  ),
+)
+
+const isUserModalOpen = ref(false)
+const userModalMode = ref<'create' | 'edit'>('create')
+
+const userForm = reactive<{
+  id: number | null
+  name: string
+  email: string
+  role: UserRow['role']
+  lastLogin: string
+  status: UserRow['status']
+}>({
+  id: null,
+  name: '',
+  email: '',
+  role: 'Viewer',
+  lastLogin: new Date().toLocaleString(),
+  status: 'Active',
+})
+
+function openCreateUser() {
+  userModalMode.value = 'create'
+  userForm.id = null
+  userForm.name = ''
+  userForm.email = ''
+  userForm.role = 'Viewer'
+  userForm.lastLogin = new Date().toLocaleString()
+  userForm.status = 'Active'
+  isUserModalOpen.value = true
+}
+
+function openEditUser(u: UserRow) {
+  userModalMode.value = 'edit'
+  userForm.id = u.id
+  userForm.name = u.name
+  userForm.email = u.email
+  userForm.role = u.role
+  userForm.lastLogin = u.lastLogin
+  userForm.status = u.status
+  isUserModalOpen.value = true
+}
+
+async function submitUser() {
+  const name = userForm.name.trim()
+  const email = userForm.email.trim()
+  if (!name || !email) {
+    toast.add({ title: 'Name and email are required', color: 'error' })
+    return
+  }
+
+  const payload = {
+    name,
+    email,
+    role: userForm.role,
+    lastLogin: userForm.lastLogin.trim(),
+    status: userForm.status,
+  }
+
+  if (userModalMode.value === 'create') {
+    await $fetch('/api/users', { method: 'POST', body: payload })
+    toast.add({ title: 'User created', color: 'success' })
+  } else {
+    await $fetch(`/api/users/${userForm.id}`, { method: 'PUT', body: payload })
+    toast.add({ title: 'User updated', color: 'success' })
+  }
+
+  isUserModalOpen.value = false
+  await refreshUsers()
+}
+
+async function deleteUser(user: UserRow) {
+  const ok = confirm(`Delete user "${user.name}"?`)
+  if (!ok) return
+  await $fetch(`/api/users/${user.id}`, { method: 'DELETE' })
+  await refreshUsers()
+  toast.add({ title: 'User deleted', color: 'success' })
+}
 
 function roleColor(role: UserRow['role']) {
   if (role === 'Admin') return 'error'
@@ -31,8 +116,44 @@ function roleColor(role: UserRow['role']) {
         <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Users</h1>
         <p class="text-sm text-gray-500 dark:text-gray-300">Manage system users and permissions</p>
       </div>
-      <UButton color="primary" icon="i-heroicons-plus-20-solid" label="New User" />
+      <UButton color="primary" icon="i-heroicons-plus-20-solid" label="New User" @click="openCreateUser" />
     </div>
+
+    <UModal
+      v-model:open="isUserModalOpen"
+      :title="userModalMode === 'create' ? 'New User' : 'Edit User'"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Name">
+            <UInput v-model="userForm.name" placeholder="Sarah Johnson" :ui="copeFieldUi" />
+          </UFormField>
+          <UFormField label="Email">
+            <UInput v-model="userForm.email" placeholder="sarah.johnson@cope.com" :ui="copeFieldUi" />
+          </UFormField>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <UFormField label="Role">
+              <USelect v-model="userForm.role" :items="['Admin', 'Editor', 'Viewer']" :ui="copeFieldUi" />
+            </UFormField>
+            <UFormField label="Status">
+              <USelect v-model="userForm.status" :items="['Active', 'Inactive']" :ui="copeFieldUi" />
+            </UFormField>
+          </div>
+
+          <UFormField label="Last Login">
+            <UInput v-model="userForm.lastLogin" :ui="copeFieldUi" />
+          </UFormField>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton color="neutral" variant="soft" label="Cancel" @click="isUserModalOpen = false" />
+          <UButton color="primary" label="Save" @click="submitUser" />
+        </div>
+      </template>
+    </UModal>
 
     <UAlert
       class="border-2 border-black dark:border-white/30 dark:bg-white/5"
@@ -58,7 +179,7 @@ function roleColor(role: UserRow['role']) {
           </thead>
           <tbody>
             <tr
-              v-for="user in users"
+              v-for="user in filteredUsers"
               :key="user.id"
               class="border-b border-gray-100 dark:border-white/10 last:border-b-0 hover:bg-gray-50 dark:hover:bg-white/5"
             >
@@ -73,8 +194,20 @@ function roleColor(role: UserRow['role']) {
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <UButton variant="link" color="success" icon="i-heroicons-pencil-square-20-solid" label="Edit" />
-                  <UButton variant="link" color="error" icon="i-heroicons-trash-20-solid" label="Delete" />
+                  <UButton
+                    variant="link"
+                    color="success"
+                    icon="i-heroicons-pencil-square-20-solid"
+                    label="Edit"
+                    @click="openEditUser(user)"
+                  />
+                  <UButton
+                    variant="link"
+                    color="error"
+                    icon="i-heroicons-trash-20-solid"
+                    label="Delete"
+                    @click="deleteUser(user)"
+                  />
                 </div>
               </td>
             </tr>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useAppSearch, rowMatchesAppSearch } from '~/composables/useAppSearch'
+
 type FlowStatus = 'Active' | 'Draft'
 
 interface FlowRow {
@@ -8,14 +10,83 @@ interface FlowRow {
   status: FlowStatus
 }
 
-const flows: FlowRow[] = [
-  { id: 1, name: 'Daily Check-in', keyword: 'CHECKIN', status: 'Active' },
-  { id: 2, name: 'Medication Reminder', keyword: 'MED', status: 'Active' },
-  { id: 3, name: 'Emergency Alert', keyword: 'HELP', status: 'Active' },
-  { id: 4, name: 'Mood Survey', keyword: 'SURVEY', status: 'Draft' },
-  { id: 5, name: 'Appointment Reminder', keyword: 'APPT', status: 'Active' },
-  { id: 6, name: 'Wellness Check', keyword: 'WELLNESS', status: 'Draft' },
-]
+const toast = useToast()
+
+const { data: flowsData, refresh: refreshFlows } = await useFetch<FlowRow[]>('/api/flows', {
+  default: () => [],
+})
+
+const flows = computed(() => flowsData.value ?? [])
+
+const appSearch = useAppSearch()
+const filteredFlows = computed(() =>
+  flows.value.filter((f) => rowMatchesAppSearch(appSearch.value, f.name, f.keyword, f.status)),
+)
+
+const isFlowModalOpen = ref(false)
+const flowModalMode = ref<'create' | 'edit'>('create')
+
+const flowForm = reactive<{
+  id: number | null
+  name: string
+  keyword: string
+  status: FlowStatus
+}>({
+  id: null,
+  name: '',
+  keyword: '',
+  status: 'Active',
+})
+
+function openCreateFlow() {
+  flowModalMode.value = 'create'
+  flowForm.id = null
+  flowForm.name = ''
+  flowForm.keyword = ''
+  flowForm.status = 'Active'
+  isFlowModalOpen.value = true
+}
+
+function openEditFlow(flow: FlowRow) {
+  flowModalMode.value = 'edit'
+  flowForm.id = flow.id
+  flowForm.name = flow.name
+  flowForm.keyword = flow.keyword
+  flowForm.status = flow.status
+  isFlowModalOpen.value = true
+}
+
+async function submitFlow() {
+  const name = flowForm.name.trim()
+  const keyword = flowForm.keyword.trim()
+  if (!name || !keyword) {
+    toast.add({ title: 'Name and keyword are required', color: 'error' })
+    return
+  }
+
+  if (flowModalMode.value === 'create') {
+    await $fetch('/api/flows', { method: 'POST', body: { name, keyword, status: flowForm.status } })
+    toast.add({ title: 'Flow created', color: 'success' })
+  } else {
+    await $fetch(`/api/flows/${flowForm.id}`, {
+      method: 'PUT',
+      body: { name, keyword, status: flowForm.status },
+    })
+    toast.add({ title: 'Flow updated', color: 'success' })
+  }
+
+  isFlowModalOpen.value = false
+  await refreshFlows()
+}
+
+async function deleteFlow(flow: FlowRow) {
+  const ok = confirm(`Delete flow "${flow.name}"?`)
+  if (!ok) return
+
+  await $fetch(`/api/flows/${flow.id}`, { method: 'DELETE' })
+  await refreshFlows()
+  toast.add({ title: 'Flow deleted', color: 'success' })
+}
 </script>
 
 <template>
@@ -30,8 +101,37 @@ const flows: FlowRow[] = [
         color="success"
         icon="i-heroicons-plus-20-solid"
         label="New Flow"
+        @click="openCreateFlow"
       />
     </div>
+
+    <UModal
+      v-model:open="isFlowModalOpen"
+      :title="flowModalMode === 'create' ? 'New Flow' : 'Edit Flow'"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Name">
+            <UInput v-model="flowForm.name" placeholder="Daily Check-in" :ui="copeFieldUi" />
+          </UFormField>
+
+          <UFormField label="Trigger Keyword">
+            <UInput v-model="flowForm.keyword" placeholder="CHECKIN" :ui="copeFieldUi" />
+          </UFormField>
+
+          <UFormField label="Status">
+            <USelect v-model="flowForm.status" :items="['Active', 'Draft']" :ui="copeFieldUi" />
+          </UFormField>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton color="neutral" variant="soft" label="Cancel" @click="isFlowModalOpen = false" />
+          <UButton color="success" label="Save" @click="submitFlow" />
+        </div>
+      </template>
+    </UModal>
 
     <UCard class="bg-white! border-2 border-black rounded-xl p-3 dark:bg-[#134e4a]! dark:border-white" :ui="{ body: 'p-0 sm:p-0' }">
       <table class="w-full text-sm">
@@ -46,7 +146,7 @@ const flows: FlowRow[] = [
 
         <tbody>
           <tr
-            v-for="flow in flows"
+            v-for="flow in filteredFlows"
             :key="flow.id"
             class="border-b border-gray-100 dark:border-white/10 last:border-b-0 hover:bg-gray-50 dark:hover:bg-white/5"
           >
@@ -66,12 +166,14 @@ const flows: FlowRow[] = [
                   color="success"
                   icon="i-heroicons-pencil-square-20-solid"
                   label="Edit"
+                  @click="openEditFlow(flow)"
                 />
                 <UButton
                   variant="link"
                   color="error"
                   icon="i-heroicons-trash-20-solid"
                   label="Delete"
+                  @click="deleteFlow(flow)"
                 />
               </div>
             </td>

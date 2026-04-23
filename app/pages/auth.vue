@@ -61,7 +61,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
 
       <UForm :schema="schema" :state="state" @submit="handleSubmit" class="space-y-5">
         <UFormField name="email" v-if="!isEmailSent">
-          <UInput v-model="state.email" class="w-full" placeholder="Email" />
+          <UInput v-model="state.email" class="w-full" placeholder="Email" :ui="copeFieldUi" />
         </UFormField>
 
         <UFormField name="otp" v-if="isEmailSent">
@@ -71,6 +71,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
             :length="6"
             size="xl"
             class="flex w-full items-center justify-center"
+            :ui="copeFieldUi"
           />
         </UFormField>
 

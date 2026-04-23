@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Used by the header search input (from spring2026).
-const search = ref('')
+import { useAppSearch } from '~/composables/useAppSearch'
+
+const search = useAppSearch()
 </script>
 
 <template>
@@ -13,14 +14,14 @@ const search = ref('')
       <div class="flex-1 flex flex-col">
         <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
           <UContainer class="flex items-center justify-between h-16">
-            <div class="[&_input::placeholder]:text-grey-300 w-full max-w-xl">
+            <div class="w-full max-w-xl">
               <UInput
                 v-model="search"
                 placeholder="Search..."
                 icon="i-heroicons-magnifying-glass-20-solid"
                 size="lg"
                 class="w-full"
-                :ui="{ base: '!bg-gray-200 !border-2 !border-black' }"
+                :ui="copeFieldUi"
               />
             </div>
 

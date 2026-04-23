@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useAppSearch } from '~/composables/useAppSearch'
+
 const stats = [
   {
     title: 'Total Messages',
@@ -31,7 +33,7 @@ const statusOptions = ['All Status', 'Delivered', 'Failed', 'Pending']
 
 const selectedKeyword = ref('All Keywords')
 const selectedStatus = ref('All Status')
-const searchQuery = ref('')
+const appSearch = useAppSearch()
 
 const logs = ref([
   {
@@ -89,13 +91,14 @@ const filteredLogs = computed(() => {
     const matchesStatus =
       selectedStatus.value === 'All Status' || log.status === selectedStatus.value
 
-    const q = searchQuery.value.trim().toLowerCase()
+    const q = appSearch.value.trim().toLowerCase()
     const matchesSearch =
       !q ||
       log.phoneNumber.toLowerCase().includes(q) ||
       log.messageSent.toLowerCase().includes(q) ||
       log.keyword.toLowerCase().includes(q) ||
-      log.workflowStep.toLowerCase().includes(q)
+      log.workflowStep.toLowerCase().includes(q) ||
+      log.timestamp.toLowerCase().includes(q)
 
     return matchesKeyword && matchesStatus && matchesSearch
   })
@@ -157,11 +160,12 @@ function statusBadgeColor(status: string) {
     <UCard class="rounded-2xl overflow-hidden">
       <div class="flex flex-col xl:flex-row gap-4 mb-6">
         <UInput
-          v-model="searchQuery"
+          v-model="appSearch"
           icon="i-heroicons-magnifying-glass-20-solid"
           placeholder="Search by phone number or message..."
           class="flex-1"
           size="xl"
+          :ui="copeFieldUi"
         />
 
         <USelect
@@ -169,6 +173,7 @@ function statusBadgeColor(status: string) {
           :items="keywordOptions"
           class="w-full xl:w-56"
           size="xl"
+          :ui="copeFieldUi"
         />
 
         <USelect
@@ -176,6 +181,7 @@ function statusBadgeColor(status: string) {
           :items="statusOptions"
           class="w-full xl:w-56"
           size="xl"
+          :ui="copeFieldUi"
         />
       </div>
 

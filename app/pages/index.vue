@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { authClient } from '~/utils/auth-client'
+import { useAppSearch, rowMatchesAppSearch } from '~/composables/useAppSearch'
 
-//Pretend data
-const now = new Date()
+// Pretend data (timestamps relative to "now" in ms)
+const now = Date.now()
 
 const users = [
   { id: 1, time: new Date(now - 2 * 60000).toLocaleTimeString(), phone: '(555) 123-4567', keyword: 'HELP', workflowStep: 'Initial Response', message: 'We understand your baby may be crying. How...', status: 'Delivered' },
@@ -25,6 +25,13 @@ const stats = [
   { label: 'Active Workflows', value: 12, icon: 'i-heroicons-inbox-stack-20-solid', change: 'All configured' },
   { label: 'Active Caregivers', value: 47, icon: 'i-heroicons-user-group-20-solid', change: '+28%' },
 ]
+
+const appSearch = useAppSearch()
+const filteredUsers = computed(() =>
+  users.filter((u) =>
+    rowMatchesAppSearch(appSearch.value, u.time, u.phone, u.keyword, u.workflowStep, u.message, u.status),
+  ),
+)
 
 </script>
 
@@ -63,7 +70,7 @@ const stats = [
           <h2 class="font-bold text-md dark:text-white">Recent SMS Activity</h2>
           <p class="text-sm text-black-300 mt-0.5 dark:text-gray-300">Latest SMS interactions with caregivers</p>
         </div>
-        <UBadge variant="solid" color="primary">{{ users.length }} Total</UBadge>
+        <UBadge variant="solid" color="primary">{{ filteredUsers.length }} shown</UBadge>
       </div>
     </template>
     <div class="overflow-x-auto">
@@ -80,7 +87,7 @@ const stats = [
       </thead>
 
       <tbody class="divide-y dark:divide-white/10">
-        <tr v-for="user in users" key="user.id" class="hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+        <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
           <td class="py-3 px-3 dark:text-gray-300">{{ user.time }}</td>
 
           <td class="py-3 px-3">

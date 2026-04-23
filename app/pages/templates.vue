@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useAppSearch, rowMatchesAppSearch } from '~/composables/useAppSearch'
+
 interface TemplateRow {
   id: number
   name: string
@@ -8,48 +10,107 @@ interface TemplateRow {
   lastUpdated: string
 }
 
-const templates: TemplateRow[] = [
-  {
-    id: 1,
-    name: 'Welcome Message',
-    category: 'Onboarding',
-    preview: 'Welcome to COPE! Reply with your name to get started.',
-    usage: '145 flows',
-    lastUpdated: '2024-03-01',
-  },
-  {
-    id: 2,
-    name: 'Daily Check-in',
-    category: 'Survey',
-    preview: 'How are you feeling today? Reply 1 for Good, 2 for OK, 3 for Not Well.',
-    usage: '092 flows',
-    lastUpdated: '2024-03-04',
-  },
-  {
-    id: 3,
-    name: 'Emergency Alert',
-    category: 'Emergency',
-    preview: 'URGENT: Emergency detected. Please respond immediately.',
-    usage: '025 flows',
-    lastUpdated: '2024-02-28',
-  },
-  {
-    id: 4,
-    name: 'Medication Reminder',
-    category: 'Reminder',
-    preview: 'Time to take your medication. Reply DONE when completed.',
-    usage: '066 flows',
-    lastUpdated: '2024-03-10',
-  },
-  {
-    id: 5,
-    name: 'Appointment Confirmation',
-    category: 'Reminder',
-    preview: 'You have an appointment tomorrow at 3PM. Reply YES to confirm.',
-    usage: '254 flows',
-    lastUpdated: '2024-03-02',
-  },
-]
+const toast = useToast()
+
+const { data: templatesData, refresh: refreshTemplates } = await useFetch<TemplateRow[]>('/api/templates', {
+  default: () => [],
+})
+
+const templates = computed(() => templatesData.value ?? [])
+
+const appSearch = useAppSearch()
+const filteredTemplates = computed(() =>
+  templates.value.filter((t) =>
+    rowMatchesAppSearch(appSearch.value, t.name, t.category, t.preview, t.usage, t.lastUpdated),
+  ),
+)
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+const isTemplateModalOpen = ref(false)
+const templateModalMode = ref<'create' | 'edit'>('create')
+
+const templateForm = reactive<{
+  id: number | null
+  name: string
+  category: string
+  preview: string
+  usage: string
+  lastUpdated: string
+}>({
+  id: null,
+  name: '',
+  category: 'General',
+  preview: '',
+  usage: '0 flows',
+  lastUpdated: todayISO(),
+})
+
+function openCreateTemplate() {
+  templateModalMode.value = 'create'
+  templateForm.id = null
+  templateForm.name = ''
+  templateForm.category = 'General'
+  templateForm.preview = ''
+  templateForm.usage = '0 flows'
+  templateForm.lastUpdated = todayISO()
+  isTemplateModalOpen.value = true
+}
+
+function openEditTemplate(t: TemplateRow) {
+  templateModalMode.value = 'edit'
+  templateForm.id = t.id
+  templateForm.name = t.name
+  templateForm.category = t.category
+  templateForm.preview = t.preview
+  templateForm.usage = t.usage
+  templateForm.lastUpdated = t.lastUpdated
+  isTemplateModalOpen.value = true
+}
+
+async function submitTemplate() {
+  const name = templateForm.name.trim()
+  const category = templateForm.category.trim()
+  const preview = templateForm.preview.trim()
+  const usage = templateForm.usage.trim()
+  const lastUpdated = templateForm.lastUpdated.trim()
+
+  if (!name || !category || !preview) {
+    toast.add({ title: 'Name, category, and message are required', color: 'error' })
+    return
+  }
+
+  if (templateModalMode.value === 'create') {
+    await $fetch('/api/templates', {
+      method: 'POST',
+      body: { name, category, preview, usage, lastUpdated },
+    })
+    toast.add({ title: 'Template created', color: 'success' })
+  } else {
+    await $fetch(`/api/templates/${templateForm.id}`, {
+      method: 'PUT',
+      body: { name, category, preview, usage, lastUpdated },
+    })
+    toast.add({ title: 'Template updated', color: 'success' })
+  }
+
+  isTemplateModalOpen.value = false
+  await refreshTemplates()
+}
+
+async function deleteTemplate(template: TemplateRow) {
+  const ok = confirm(`Delete template "${template.name}"?`)
+  if (!ok) return
+  await $fetch(`/api/templates/${template.id}`, { method: 'DELETE' })
+  await refreshTemplates()
+  toast.add({ title: 'Template deleted', color: 'success' })
+}
+
+function viewTemplate(template: TemplateRow) {
+  alert(template.preview)
+}
 </script>
 
 <template>
@@ -60,8 +121,55 @@ const templates: TemplateRow[] = [
         <p class="text-sm text-gray-500 dark:text-gray-300">Manage reusable SMS message templates</p>
       </div>
 
-      <UButton color="success" icon="i-heroicons-plus-20-solid" label="New Template" />
+      <UButton
+        color="success"
+        icon="i-heroicons-plus-20-solid"
+        label="New Template"
+        @click="openCreateTemplate"
+      />
     </div>
+
+    <UModal
+      v-model:open="isTemplateModalOpen"
+      :title="templateModalMode === 'create' ? 'New Template' : 'Edit Template'"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Name">
+            <UInput v-model="templateForm.name" placeholder="Welcome Message" :ui="copeFieldUi" />
+          </UFormField>
+
+          <UFormField label="Category">
+            <UInput v-model="templateForm.category" placeholder="Onboarding" :ui="copeFieldUi" />
+          </UFormField>
+
+          <UFormField label="Message">
+            <UTextarea
+              v-model="templateForm.preview"
+              :rows="4"
+              placeholder="Type the message..."
+              :ui="copeFieldUi"
+            />
+          </UFormField>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <UFormField label="Usage">
+              <UInput v-model="templateForm.usage" placeholder="0 flows" :ui="copeFieldUi" />
+            </UFormField>
+            <UFormField label="Last Updated">
+              <UInput v-model="templateForm.lastUpdated" placeholder="YYYY-MM-DD" :ui="copeFieldUi" />
+            </UFormField>
+          </div>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton color="neutral" variant="soft" label="Cancel" @click="isTemplateModalOpen = false" />
+          <UButton color="success" label="Save" @click="submitTemplate" />
+        </div>
+      </template>
+    </UModal>
 
     <UCard class="bg-white! border-2 border-black rounded-xl p-3 dark:bg-[#134e4a]! dark:border-white" :ui="{ body: 'p-0 sm:p-0' }">
       <div class="overflow-x-auto">
@@ -78,7 +186,7 @@ const templates: TemplateRow[] = [
           </thead>
           <tbody>
             <tr
-              v-for="template in templates"
+              v-for="template in filteredTemplates"
               :key="template.id"
               class="border-b border-gray-100 dark:border-white/10 last:border-b-0 hover:bg-gray-50 dark:hover:bg-white/5"
             >
@@ -91,9 +199,24 @@ const templates: TemplateRow[] = [
               <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ template.lastUpdated }}</td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
-                  <UButton icon="i-heroicons-arrow-uturn-left-20-solid" color="neutral" variant="link" />
-                  <UButton icon="i-heroicons-pencil-square-20-solid" color="success" variant="link" />
-                  <UButton icon="i-heroicons-trash-20-solid" color="error" variant="link" />
+                  <UButton
+                    icon="i-heroicons-arrow-uturn-left-20-solid"
+                    color="neutral"
+                    variant="link"
+                    @click="viewTemplate(template)"
+                  />
+                  <UButton
+                    icon="i-heroicons-pencil-square-20-solid"
+                    color="success"
+                    variant="link"
+                    @click="openEditTemplate(template)"
+                  />
+                  <UButton
+                    icon="i-heroicons-trash-20-solid"
+                    color="error"
+                    variant="link"
+                    @click="deleteTemplate(template)"
+                  />
                 </div>
               </td>
             </tr>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useAppSearch, rowMatchesAppSearch } from '~/composables/useAppSearch'
+
 type AlertStatus = 'Active' | 'Resolved' | 'Dismissed'
 
 interface EmergencyAlert {
@@ -11,56 +13,52 @@ interface EmergencyAlert {
   respondedBy: string
 }
 
-const alerts: EmergencyAlert[] = [
-  {
-    id: 1,
-    status: 'Active',
-    patient: 'Robert Miller',
-    patientId: '#1014',
-    type: 'Fall Detected',
-    time: '2024-03-06 10:45 AM',
-    respondedBy: '---',
-  },
-  {
-    id: 2,
-    status: 'Active',
-    patient: 'Margaret Johnson',
-    patientId: '#1016',
-    type: 'Medication Emergency',
-    time: '2024-03-06 09:12 AM',
-    respondedBy: '---',
-  },
-  {
-    id: 3,
-    status: 'Resolved',
-    patient: 'James Wilson',
-    patientId: '#1017',
-    type: 'Distress Signal',
-    time: '2024-03-05 08:32 AM',
-    respondedBy: 'Dr. Sarah Chen',
-  },
-  {
-    id: 4,
-    status: 'Resolved',
-    patient: 'Patricia Brown',
-    patientId: '#1039',
-    type: 'No Response',
-    time: '2024-03-05 11:20 PM',
-    respondedBy: 'Nurse Linda Martinez',
-  },
-  {
-    id: 5,
-    status: 'Dismissed',
-    patient: 'Thomas Anderson',
-    patientId: '#1007',
-    type: 'Chest Pain',
-    time: '2024-03-04 06:46 PM',
-    respondedBy: 'Dr. Michael Torres',
-  },
-]
+const toast = useToast()
 
-const activeCount = computed(() => alerts.filter((a) => a.status === 'Active').length)
-const resolvedCount = computed(() => alerts.filter((a) => a.status === 'Resolved').length)
+const { data: alertsData, refresh: refreshAlerts } = await useFetch<EmergencyAlert[]>('/api/emergency', {
+  default: () => [],
+})
+
+const alerts = computed(() => alertsData.value ?? [])
+
+const appSearch = useAppSearch()
+const filteredAlerts = computed(() =>
+  alerts.value.filter((a) =>
+    rowMatchesAppSearch(
+      appSearch.value,
+      a.status,
+      a.patient,
+      a.patientId,
+      a.type,
+      a.time,
+      a.respondedBy,
+    ),
+  ),
+)
+
+const activeCount = computed(() => alerts.value.filter((a) => a.status === 'Active').length)
+const resolvedCount = computed(() => alerts.value.filter((a) => a.status === 'Resolved').length)
+
+async function respondAlert(alert: EmergencyAlert) {
+  await $fetch(`/api/emergency/${alert.id}/respond`, {
+    method: 'POST',
+    body: { respondedBy: 'Admin' },
+  })
+  await refreshAlerts()
+  toast.add({ title: 'Alert responded', color: 'success' })
+}
+
+async function dismissAlert(alert: EmergencyAlert) {
+  await $fetch(`/api/emergency/${alert.id}/dismiss`, { method: 'POST' })
+  await refreshAlerts()
+  toast.add({ title: 'Alert dismissed', color: 'success' })
+}
+
+function viewDetails(row: EmergencyAlert) {
+  window.alert(
+    `${row.patient} (${row.patientId})\nType: ${row.type}\nTime: ${row.time}\nStatus: ${row.status}\nResponded By: ${row.respondedBy}`,
+  )
+}
 </script>
 
 <template>
@@ -99,7 +97,7 @@ const resolvedCount = computed(() => alerts.filter((a) => a.status === 'Resolved
 
           <tbody>
             <tr
-              v-for="alert in alerts"
+              v-for="alert in filteredAlerts"
               :key="alert.id"
               :class="[
                 'border-b border-gray-100 dark:border-white/10 last:border-b-0 hover:bg-gray-50 dark:hover:bg-white/5',
@@ -140,12 +138,12 @@ const resolvedCount = computed(() => alerts.filter((a) => a.status === 'Resolved
               <td class="px-4 py-3">
                 <template v-if="alert.status === 'Active'">
                   <div class="flex items-center gap-3">
-                    <UButton size="xs" color="primary" label="Respond" />
-                    <UButton size="xs" variant="link" color="primary" label="Dismiss" />
+                    <UButton size="xs" color="primary" label="Respond" @click="respondAlert(alert)" />
+                    <UButton size="xs" variant="link" color="primary" label="Dismiss" @click="dismissAlert(alert)" />
                   </div>
                 </template>
                 <template v-else>
-                  <UButton variant="link" color="primary" label="View Details" />
+                  <UButton variant="link" color="primary" label="View Details" @click="viewDetails(alert)" />
                 </template>
               </td>
             </tr>
