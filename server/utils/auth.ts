@@ -30,9 +30,7 @@ export const auth = betterAuth({
             }
         }
     },
-	  session: {
-      
-    }
+
 
 	/* plugins: [
 		emailOTP({
