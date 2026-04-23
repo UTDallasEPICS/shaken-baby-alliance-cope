@@ -56,7 +56,7 @@ try {
       
     } else {
       console.log('Welcome User! Routing to standard dashboard...')
-  router.push('/');
+  router.push('/dashboard.vue');
     }
 
   } catch (err) {
