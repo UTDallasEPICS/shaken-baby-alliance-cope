@@ -5,21 +5,227 @@ import SideBar from '~/components/SidebarNav.vue'
 interface CaregiverRow {
   id: number
   name: string
-  role: string
   phone: string
   email: string
-  patients: string
-  status: 'Active' | 'Inactive'
+  address: string
+  cityState: string
+  firstContact: string
+  lastInteraction: string
+  keywords: string[]
+  status: 'active' | 'inactive'
 }
 
-const caregivers: CaregiverRow[] = [
-  { id: 1, name: 'Dr. Sarah Chen', role: 'Primary Care', phone: '+1 (555) 234-5678', email: 'sarah.chen@cope.com', patients: '12 assigned', status: 'Active' },
-  { id: 2, name: 'Nurse Linda Martinez', role: 'Home Care', phone: '+1 (555) 345-6789', email: 'linda.martinez@cope.com', patients: '18 assigned', status: 'Active' },
-  { id: 3, name: 'Dr. Michael Torres', role: 'Specialist', phone: '+1 (555) 456-7890', email: 'michael.torres@cope.com', patients: '16 assigned', status: 'Active' },
-  { id: 4, name: 'Emma Richardson', role: 'Home Care', phone: '+1 (555) 567-8901', email: 'emma.richardson@cope.com', patients: '8 assigned', status: 'Active' },
-  { id: 5, name: 'David Park', role: 'Home Care', phone: '+1 (555) 678-9012', email: 'david.park@cope.com', patients: '0 assigned', status: 'Inactive' },
-  { id: 6, name: 'Dr. Jennifer Walsh', role: 'Primary Care', phone: '+1 (555) 789-0123', email: 'jennifer.walsh@cope.com', patients: '10 assigned', status: 'Active' },
+function mapCaregiver(caregiver: any): Caregiver {
+  const cityState = [caregiver.city, caregiver.state].filter(Boolean).join(', ')
+
+  return {
+    id: caregiver.id,
+    name: caregiver.name || '',
+    phone: caregiver.phone || '',
+    email: caregiver.email || '',
+    address: caregiver.address || '',
+    cityState,
+    firstContact: caregiver.firstContactDate
+      ? new Date(caregiver.firstContactDate).toISOString().slice(0, 10)
+      : '',
+    lastInteraction: caregiver.lastInteraction
+      ? new Date(caregiver.lastInteraction).toISOString().slice(0, 10)
+      : '',
+    keywords: caregiver.messages?.map((m: any) => m.keywordDetected).filter(Boolean) || [],
+    status: caregiver.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active',
+  }
+}
+
+function parseCityState(cityState: string) {
+  const [city, state] = cityState.split(',').map((part) => part.trim())
+  return { city: city || '', state: state || '' }
+}
+
+const caregivers = ref<Caregiver[]>([])
+const searchQuery = ref('')
+const showAddModal = ref(false)
+const showEditModal = ref(false)
+const availableKeywords = ['HELP', 'COPE', 'CALM', 'EMERGENCY']
+const emptyForm = () => ({
+  name: '',
+  phone: '',
+  email: '',
+  address: '',
+  cityState: '',
+  firstContact: '',
+  lastInteraction: '',
+  keywords: [] as string[],
+  status: 'active' as 'active' | 'inactive',
+})
+const form = ref(emptyForm())
+const editForm = ref<Caregiver | null>(null)
+
+const { data: caregiversData, error: fetchError } = await useFetch<{ caregivers: any[] }>('/api/caregivers')
+if (fetchError.value) {
+  console.error('Failed to load caregivers', fetchError.value)
+} else if (caregiversData.value?.caregivers) {
+  caregivers.value = caregiversData.value.caregivers.map(mapCaregiver)
+}
+
+const filteredData = computed(() => {
+  const q = searchQuery.value.toLowerCase()
+  if (!q) return caregivers.value
+  return caregivers.value.filter(c =>
+    c.name.toLowerCase().includes(q) ||
+    c.phone.includes(q) ||
+    c.email.toLowerCase().includes(q) ||
+    c.cityState.toLowerCase().includes(q) ||
+    c.keywords.some(k => k.toLowerCase().includes(q))
+  )
+})
+const keywordColor: Record<string, string> = {
+  HELP: 'primary',
+  COPE: 'success',
+  CALM: 'warning',
+  EMERGENCY: 'error',
+}
+
+async function deleteCaregiver(id: string) {
+  await $fetch('/api/caregivers', { method: 'DELETE', body: { id } })
+  caregivers.value = caregivers.value.filter(c => c.id !== id)
+}
+
+const columns: TableColumn<Caregiver>[] = [
+  { accessorKey: 'name',            header: 'Name' },
+  { accessorKey: 'phone',           header: 'Phone Number' },
+  { accessorKey: 'email',           header: 'Email' },
+  { accessorKey: 'address',         header: 'Address' },
+  { accessorKey: 'cityState',       header: 'City / State' },
+  { accessorKey: 'firstContact',    header: 'First Contact' },
+  { accessorKey: 'lastInteraction', header: 'Last Interaction' },
+  {
+    accessorKey: 'keywords',
+    header: 'Keywords Used',
+    cell: ({ row }) =>
+      h('div', { class: 'flex flex-wrap gap-1' },
+        row.original.keywords.map(kw =>
+          h(UBadge, { color: keywordColor[kw] ?? 'neutral', variant: 'subtle', size: 'xs' }, () => kw)
+        )
+      ),
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) =>
+      h(UBadge, {
+        color: row.original.status === 'active' ? 'success' : 'neutral',
+        variant: 'subtle',
+        size: 'sm',
+      }, () => row.original.status),
+  },
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row }) =>
+      h('div', { class: 'flex items-center gap-1' }, [
+        h(UButton, {
+          icon: 'i-heroicons-chat-bubble-left-ellipsis-20-solid',
+          color: 'neutral', variant: 'ghost', size: 'xs',
+          title: 'View SMS Conversations',
+        }),
+        h(UButton, {
+          icon: 'i-heroicons-pencil-square-20-solid',
+          color: 'neutral', variant: 'ghost', size: 'xs',
+          title: 'Edit',
+          onClick: () => openEditModal(row.original),
+        }),
+        h(UButton, {
+          icon: 'i-heroicons-trash-20-solid',
+          color: 'error', variant: 'ghost', size: 'xs',
+          title: 'Delete',
+          onClick: () => deleteCaregiver(row.original.id),
+        }),
+      ]),
+  },
 ]
+
+function toggleKeyword(kw: string) {
+  const idx = form.value.keywords.indexOf(kw)
+  if (idx === -1) form.value.keywords.push(kw)
+  else form.value.keywords.splice(idx, 1)
+}
+
+async function saveCaregiver() {
+  if (!form.value.name.trim() || !form.value.phone.trim() || !form.value.email.trim()) return
+
+  const { city, state } = parseCityState(form.value.cityState)
+  const payload = {
+    name: form.value.name,
+    phone: form.value.phone,
+    email: form.value.email,
+    address: form.value.address,
+    city,
+    state,
+    firstContactDate: form.value.firstContact || undefined,
+    lastInteraction: form.value.lastInteraction || undefined,
+    status: form.value.status.toUpperCase(),
+    messages: form.value.keywords.map((keyword) => ({ keywordDetected: keyword })),
+  }
+
+  const created = await $fetch<{ caregiver: any }>('/api/caregivers', { method: 'POST', body: payload })
+  if (created?.caregiver) {
+    caregivers.value.unshift(mapCaregiver(created.caregiver))
+  }
+
+  form.value = emptyForm()
+  showAddModal.value = false
+}
+
+function cancelAdd() {
+  form.value = emptyForm()
+  showAddModal.value = false
+}
+
+function openEditModal(caregiver: Caregiver) {
+  editForm.value = { ...caregiver, keywords: [...caregiver.keywords] }
+  showEditModal.value = true
+}
+
+async function saveEdit() {
+  if (!editForm.value) return
+
+  const { city, state } = parseCityState(editForm.value.cityState)
+  const payload = {
+    id: editForm.value.id,
+    name: editForm.value.name,
+    phone: editForm.value.phone,
+    email: editForm.value.email,
+    address: editForm.value.address,
+    city,
+    state,
+    status: editForm.value.status.toUpperCase(),
+    firstContactDate: editForm.value.firstContact || undefined,
+    lastInteraction: editForm.value.lastInteraction || undefined,
+    messages: editForm.value.keywords.map((keyword) => ({ keywordDetected: keyword })),
+  }
+
+  const response = await $fetch<{ caregiver: any }>('/api/caregivers', { method: 'PUT', body: payload })
+  if (response?.caregiver) {
+    const updated = mapCaregiver(response.caregiver)
+    const idx = caregivers.value.findIndex(c => c.id === updated.id)
+    if (idx !== -1) caregivers.value[idx] = updated
+  }
+
+  showEditModal.value = false
+  editForm.value = null
+}
+
+function cancelEdit() {
+  showEditModal.value = false
+  editForm.value = null
+}
+
+function toggleEditKeyword(kw: string) {
+  if (!editForm.value) return
+  const idx = editForm.value.keywords.indexOf(kw)
+  if (idx === -1) editForm.value.keywords.push(kw)
+  else editForm.value.keywords.splice(idx, 1)
+}
 </script>
 
 <template>
