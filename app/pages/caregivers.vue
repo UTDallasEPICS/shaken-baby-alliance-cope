@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import Appheader from '~/components/Appheader.vue'
+import SideBar from '~/components/SidebarNav.vue'
+
 interface CaregiverRow {
   id: number
   name: string
@@ -20,57 +23,64 @@ const caregivers: CaregiverRow[] = [
 </script>
 
 <template>
-  <UContainer class="py-6 space-y-4">
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Caregivers</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-300">Manage caregiver profiles and assignments</p>
-      </div>
-      <UButton color="primary" icon="i-heroicons-plus-20-solid" label="New Caregiver" />
+  <div class="flex flex-col h-screen">
+    <Appheader />
+    <div class="flex flex-1 overflow-hidden">
+      <SideBar />
+      <main class="flex-1 overflow-y-auto">
+        <UContainer class="py-6 space-y-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Caregivers</h1>
+              <p class="text-sm text-gray-500 dark:text-gray-300">Manage caregiver profiles and assignments</p>
+            </div>
+            <UButton color="primary" icon="i-heroicons-plus-20-solid" label="New Caregiver" />
+          </div>
+
+          <UCard class="bg-white! border-2 border-black rounded-xl p-3 dark:bg-[#134e4a]! dark:border-white" :ui="{ body: 'p-0 sm:p-0' }">
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[980px] text-sm">
+                <thead>
+                  <tr class="border-b border-gray-200 dark:border-white/20">
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Role</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Contact</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Patients</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="caregiver in caregivers"
+                    :key="caregiver.id"
+                    class="border-b border-gray-100 dark:border-white/10 last:border-b-0 hover:bg-gray-50 dark:hover:bg-white/5"
+                  >
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ caregiver.name }}</td>
+                    <td class="px-4 py-3">
+                      <UBadge :label="caregiver.role" color="primary" variant="solid" />
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      <p>{{ caregiver.phone }}</p>
+                      <p class="text-xs">{{ caregiver.email }}</p>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ caregiver.patients }}</td>
+                    <td class="px-4 py-3">
+                      <UBadge :label="caregiver.status" :color="caregiver.status === 'Active' ? 'success' : 'neutral'" variant="solid" />
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-3">
+                        <UButton variant="link" color="success" icon="i-heroicons-pencil-square-20-solid" label="Edit" />
+                        <UButton variant="link" color="error" icon="i-heroicons-trash-20-solid" label="Delete" />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </UCard>
+        </UContainer>
+      </main>
     </div>
-
-    <UCard class="bg-white! border-2 border-black rounded-xl p-3 dark:bg-[#134e4a]! dark:border-white" :ui="{ body: 'p-0 sm:p-0' }">
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[980px] text-sm">
-          <thead>
-            <tr class="border-b border-gray-200 dark:border-white/20">
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Name</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Role</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Contact</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Patients</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Status</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="caregiver in caregivers"
-              :key="caregiver.id"
-              class="border-b border-gray-100 dark:border-white/10 last:border-b-0 hover:bg-gray-50 dark:hover:bg-white/5"
-            >
-              <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ caregiver.name }}</td>
-              <td class="px-4 py-3">
-                <UBadge :label="caregiver.role" color="primary" variant="solid" />
-              </td>
-              <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
-                <p>{{ caregiver.phone }}</p>
-                <p class="text-xs">{{ caregiver.email }}</p>
-              </td>
-              <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ caregiver.patients }}</td>
-              <td class="px-4 py-3">
-                <UBadge :label="caregiver.status" :color="caregiver.status === 'Active' ? 'success' : 'neutral'" variant="solid" />
-              </td>
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-3">
-                  <UButton variant="link" color="success" icon="i-heroicons-pencil-square-20-solid" label="Edit" />
-                  <UButton variant="link" color="error" icon="i-heroicons-trash-20-solid" label="Delete" />
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </UCard>
-  </UContainer>
+  </div>
 </template>
-

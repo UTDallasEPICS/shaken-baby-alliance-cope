@@ -52,11 +52,11 @@ try {
    
     if ((data.user as any).role === 'admin') {
       console.log('Welcome Admin! Routing to admin panel...')
-      router.push('/');
+      router.push('/dashboard');
       
     } else {
       console.log('Welcome User! Routing to standard dashboard...')
-  router.push('/');
+      router.push('/dashboard');
     }
 
   } catch (err) {
@@ -93,16 +93,16 @@ try {
       <form @submit.prevent="handleSubmit" class="space-y-5">
         
         <div class="space-y-1.5">
-          <label class="block text-xs font-semibold text-gray-700">User ID</label>
+          <label class="block text-xs font-semibold text-gray-700">Email</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <User class="h-4 w-4 text-blue-500" />
             </div>
             <input 
               v-model="userId"
-              type="text" 
-              placeholder="Enter your User ID"
-              class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors placeholder:text-gray-400"
+              type="email" 
+              placeholder="Enter your email"
+              class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors placeholder:text-gray-400"
               required
             >
           </div>

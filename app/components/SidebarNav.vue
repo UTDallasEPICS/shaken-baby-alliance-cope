@@ -4,7 +4,7 @@
   const route = useRoute()
 
   const navItems = computed(() => [
-    { label: 'Dashboard', to: '/', icon: 'i-heroicons-squares-2x2-20-solid' },
+    { label: 'Dashboard', to: '/dashboard', icon: 'i-heroicons-squares-2x2-20-solid' },
     { label: 'Flows', to: '/flows', icon: 'i-heroicons-arrow-path-20-solid' },
     { label: 'Templates', to: '/templates', icon: 'i-heroicons-document-text-20-solid' },
     { label: 'Emergency', to: '/emergency', icon: 'i-heroicons-exclamation-circle-20-solid' },
@@ -26,7 +26,7 @@
   <aside
     class="hidden w-64 flex-col border-r border-gray-200 bg-white lg:flex dark:border-gray-800 dark:bg-gray-900"
   >
-    <div class="flex h-22 items-center border-b border-gray-200 px-5 dark:border-gray-800">
+    <div class="flex h-30 items-center border-b border-gray-200 px-5 dark:border-gray-800">
       <NuxtLink to="/" class="flex items-center gap-2">
         <span class="text-[28px] leading-none font-bold text-gray-900 dark:text-white"
           >COPE SMS Admin</span
