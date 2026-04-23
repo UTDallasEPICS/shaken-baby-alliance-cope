@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { h, resolveComponent } from 'vue'
-import type { TableColumn } from '@nuxt/ui'
+const exportOpen = ref(false)
 
-const UBadge = resolveComponent('UBadge')
-const UButton = resolveComponent('UButton')
+type Status = 'active' | 'inactive' | 'deleted'
 
 type Caregiver = {
   id: string
@@ -15,53 +13,47 @@ type Caregiver = {
   firstContact: string
   lastInteraction: string
   keywords: string[]
-  status: 'active' | 'inactive'
+  status: Status
 }
 
-function mapCaregiver(caregiver: any): Caregiver {
-  const cityState = [caregiver.city, caregiver.state].filter(Boolean).join(', ')
-
+function mapCaregiver(c: any): Caregiver {
   return {
-    id: caregiver.id,
-    name: caregiver.name || '',
-    phone: caregiver.phone || '',
-    email: caregiver.email || '',
-    address: caregiver.address || '',
-    cityState,
-    firstContact: caregiver.firstContactDate
-      ? new Date(caregiver.firstContactDate).toISOString().slice(0, 10)
-      : '',
-    lastInteraction: caregiver.lastInteraction
-      ? new Date(caregiver.lastInteraction).toISOString().slice(0, 10)
-      : '',
-    keywords: caregiver.messages?.map((m: any) => m.keywordDetected).filter(Boolean) || [],
-    status: caregiver.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active',
+    id: c.id,
+    name: c.name || '',
+    phone: c.phone || '',
+    email: c.email || '',
+    address: c.address || '',
+    cityState: [c.city, c.state].filter(Boolean).join(', '),
+    firstContact: c.firstContactDate ? new Date(c.firstContactDate).toLocaleDateString() : '',
+    lastInteraction: c.lastInteraction ? new Date(c.lastInteraction).toLocaleDateString() : '',
+    keywords: c.keywords || [],
+    status: c.status?.toLowerCase() === 'deleted' ? 'deleted' : c.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active',
   }
 }
 
 function parseCityState(cityState: string) {
-  const [city, state] = cityState.split(',').map((part) => part.trim())
+  const [city, state] = cityState.split(',').map(p => p.trim())
   return { city: city || '', state: state || '' }
 }
 
+const { confirm } = useConfirm()
+const { show: showToast } = useAppToast()
+
 const caregivers = ref<Caregiver[]>([])
 const searchQuery = ref('')
-const showAddModal = ref(false)
+const showAddCard = ref(false)
 const showEditModal = ref(false)
+const showDeletedSection = ref(false)
 const availableKeywords = ['HELP', 'COPE', 'CALM', 'EMERGENCY']
+
 const emptyForm = () => ({
-  name: '',
-  phone: '',
-  email: '',
-  address: '',
-  cityState: '',
-  firstContact: '',
-  lastInteraction: '',
+  name: '', phone: '', email: '', address: '', cityState: '',
+  firstContact: '', lastInteraction: '',
   keywords: [] as string[],
   status: 'active' as 'active' | 'inactive',
 })
 const form = ref(emptyForm())
-const editForm = ref<Caregiver | null>(null)
+const editForm = ref<(Omit<Caregiver, 'status'> & { status: 'active' | 'inactive' }) | null>(null)
 
 const { data: caregiversData, error: fetchError } = await useFetch<{ caregivers: any[] }>('/api/caregivers')
 if (fetchError.value) {
@@ -70,82 +62,45 @@ if (fetchError.value) {
   caregivers.value = caregiversData.value.caregivers.map(mapCaregiver)
 }
 
-const filteredData = computed(() => {
+const activeCaregivers = computed(() =>
+  caregivers.value.filter(c => c.status !== 'deleted')
+)
+const activeOnlyCaregivers = computed(() =>
+  caregivers.value.filter(c => c.status === 'active')
+)
+const inactiveCaregivers = computed(() =>
+  caregivers.value.filter(c => c.status === 'inactive')
+)
+const deletedCaregivers = computed(() =>
+  caregivers.value.filter(c => c.status === 'deleted')
+)
+
+const filteredActive = computed(() => {
   const q = searchQuery.value.toLowerCase()
-  if (!q) return caregivers.value
-  return caregivers.value.filter(c =>
+  if (!q) return activeCaregivers.value
+  return activeCaregivers.value.filter(c =>
     c.name.toLowerCase().includes(q) ||
     c.phone.includes(q) ||
     c.email.toLowerCase().includes(q) ||
-    c.cityState.toLowerCase().includes(q) ||
-    c.keywords.some(k => k.toLowerCase().includes(q))
+    c.cityState.toLowerCase().includes(q)
   )
 })
-const keywordColor: Record<string, string> = {
-  HELP: 'primary',
-  COPE: 'success',
-  CALM: 'warning',
-  EMERGENCY: 'error',
-}
 
-async function deleteCaregiver(id: string) {
-  await $fetch('/api/caregivers', { method: 'DELETE', body: { id } })
-  caregivers.value = caregivers.value.filter(c => c.id !== id)
-}
+const filteredDeleted = computed(() => {
+  const q = searchQuery.value.toLowerCase()
+  if (!q) return deletedCaregivers.value
+  return deletedCaregivers.value.filter(c =>
+    c.name.toLowerCase().includes(q) ||
+    c.phone.includes(q) ||
+    c.email.toLowerCase().includes(q)
+  )
+})
 
-const columns: TableColumn<Caregiver>[] = [
-  { accessorKey: 'name',            header: 'Name' },
-  { accessorKey: 'phone',           header: 'Phone Number' },
-  { accessorKey: 'email',           header: 'Email' },
-  { accessorKey: 'address',         header: 'Address' },
-  { accessorKey: 'cityState',       header: 'City / State' },
-  { accessorKey: 'firstContact',    header: 'First Contact' },
-  { accessorKey: 'lastInteraction', header: 'Last Interaction' },
-  {
-    accessorKey: 'keywords',
-    header: 'Keywords Used',
-    cell: ({ row }) =>
-      h('div', { class: 'flex flex-wrap gap-1' },
-        row.original.keywords.map(kw =>
-          h(UBadge, { color: keywordColor[kw] ?? 'neutral', variant: 'subtle', size: 'xs' }, () => kw)
-        )
-      ),
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) =>
-      h(UBadge, {
-        color: row.original.status === 'active' ? 'success' : 'neutral',
-        variant: 'subtle',
-        size: 'sm',
-      }, () => row.original.status),
-  },
-  {
-    id: 'actions',
-    header: 'Actions',
-    cell: ({ row }) =>
-      h('div', { class: 'flex items-center gap-1' }, [
-        h(UButton, {
-          icon: 'i-heroicons-chat-bubble-left-ellipsis-20-solid',
-          color: 'neutral', variant: 'ghost', size: 'xs',
-          title: 'View SMS Conversations',
-        }),
-        h(UButton, {
-          icon: 'i-heroicons-pencil-square-20-solid',
-          color: 'neutral', variant: 'ghost', size: 'xs',
-          title: 'Edit',
-          onClick: () => openEditModal(row.original),
-        }),
-        h(UButton, {
-          icon: 'i-heroicons-trash-20-solid',
-          color: 'error', variant: 'ghost', size: 'xs',
-          title: 'Delete',
-          onClick: () => deleteCaregiver(row.original.id),
-        }),
-      ]),
-  },
-]
+// ── Add ────────────────────────────────────────────────────────────────────
+function toggleAddCard() {
+  showAddCard.value = !showAddCard.value
+  if (!showAddCard.value) form.value = emptyForm()
+}
 
 function toggleKeyword(kw: string) {
   const idx = form.value.keywords.indexOf(kw)
@@ -155,72 +110,25 @@ function toggleKeyword(kw: string) {
 
 async function saveCaregiver() {
   if (!form.value.name.trim() || !form.value.phone.trim() || !form.value.email.trim()) return
-
   const { city, state } = parseCityState(form.value.cityState)
-  const payload = {
-    name: form.value.name,
-    phone: form.value.phone,
-    email: form.value.email,
-    address: form.value.address,
-    city,
-    state,
-    firstContactDate: form.value.firstContact || undefined,
-    lastInteraction: form.value.lastInteraction || undefined,
-    status: form.value.status.toUpperCase(),
-    messages: form.value.keywords.map((keyword) => ({ keywordDetected: keyword })),
-  }
-
-  const created = await $fetch<{ caregiver: any }>('/api/caregivers', { method: 'POST', body: payload })
-  if (created?.caregiver) {
-    caregivers.value.unshift(mapCaregiver(created.caregiver))
-  }
-
+  const created = await $fetch<{ caregiver: any }>('/api/caregivers', {
+    method: 'POST',
+    body: { ...form.value, city, state, status: form.value.status.toUpperCase(), keywords: form.value.keywords },
+  })
+  if (created?.caregiver) caregivers.value.unshift(mapCaregiver(created.caregiver))
   form.value = emptyForm()
-  showAddModal.value = false
+  showAddCard.value = false
+  showToast('Caregiver added successfully', 'success')
 }
 
-function cancelAdd() {
-  form.value = emptyForm()
-  showAddModal.value = false
-}
-
-function openEditModal(caregiver: Caregiver) {
-  editForm.value = { ...caregiver, keywords: [...caregiver.keywords] }
+// ── Edit ───────────────────────────────────────────────────────────────────
+function openEditModal(c: Caregiver) {
+  editForm.value = {
+    ...c,
+    keywords: [...c.keywords],
+    status: c.status === 'deleted' ? 'inactive' : c.status,
+  }
   showEditModal.value = true
-}
-
-async function saveEdit() {
-  if (!editForm.value) return
-
-  const { city, state } = parseCityState(editForm.value.cityState)
-  const payload = {
-    id: editForm.value.id,
-    name: editForm.value.name,
-    phone: editForm.value.phone,
-    email: editForm.value.email,
-    address: editForm.value.address,
-    city,
-    state,
-    status: editForm.value.status.toUpperCase(),
-    firstContactDate: editForm.value.firstContact || undefined,
-    lastInteraction: editForm.value.lastInteraction || undefined,
-    messages: editForm.value.keywords.map((keyword) => ({ keywordDetected: keyword })),
-  }
-
-  const response = await $fetch<{ caregiver: any }>('/api/caregivers', { method: 'PUT', body: payload })
-  if (response?.caregiver) {
-    const updated = mapCaregiver(response.caregiver)
-    const idx = caregivers.value.findIndex(c => c.id === updated.id)
-    if (idx !== -1) caregivers.value[idx] = updated
-  }
-
-  showEditModal.value = false
-  editForm.value = null
-}
-
-function cancelEdit() {
-  showEditModal.value = false
-  editForm.value = null
 }
 
 function toggleEditKeyword(kw: string) {
@@ -229,94 +137,637 @@ function toggleEditKeyword(kw: string) {
   if (idx === -1) editForm.value.keywords.push(kw)
   else editForm.value.keywords.splice(idx, 1)
 }
+
+async function saveEdit() {
+  if (!editForm.value) return
+  const ok = await confirm(
+    `Save changes to ${editForm.value.name}?`,
+    'Confirm Changes',
+    'Save Changes',
+    false
+  )
+  if (!ok) return
+  const { city, state } = parseCityState(editForm.value.cityState)
+  const response = await $fetch<{ caregiver: any }>('/api/caregivers', {
+    method: 'PUT',
+    body: { ...editForm.value, city, state, status: editForm.value.status.toUpperCase(), keywords: editForm.value.keywords },
+  })
+  if (response?.caregiver) {
+    const updated = mapCaregiver(response.caregiver)
+    const idx = caregivers.value.findIndex(c => c.id === updated.id)
+    if (idx !== -1) caregivers.value.splice(idx, 1, updated)
+  }
+  showEditModal.value = false
+  editForm.value = null
+  showToast('Caregiver updated successfully', 'success')
+}
+
+function cancelEdit() { showEditModal.value = false; editForm.value = null }
+
+// ── Status toggle ──────────────────────────────────────────────────────────
+async function toggleStatus(c: Caregiver) {
+  const newStatus = c.status === 'active' ? 'inactive' : 'active'
+  const ok = await confirm(
+    c.status === 'active'
+      ? `${c.name} will be marked as inactive. Are you sure you want to continue?`
+      : `${c.name} will be marked as active. Are you sure you want to continue?`,
+    c.status === 'active' ? 'Deactivate Caregiver?' : 'Activate Caregiver?',
+    c.status === 'active' ? 'Yes, Deactivate' : 'Yes, Activate',
+    false
+  )
+  if (!ok) return
+
+  const { city, state } = parseCityState(c.cityState)
+  await $fetch('/api/caregivers', {
+    method: 'PUT',
+    body: { ...c, city, state, status: newStatus.toUpperCase() },
+  })
+  const idx = caregivers.value.findIndex(x => x.id === c.id)
+  if (idx !== -1) caregivers.value[idx] = { ...caregivers.value[idx], status: newStatus }
+  showToast(`Caregiver marked as ${newStatus}`, 'success')
+}
+
+// ── Soft delete ────────────────────────────────────────────────────────────
+async function confirmDelete(id: string, name: string) {
+  const ok = await confirm(
+    `${name} will be moved to deleted records. You can restore them later.`,
+    'Delete Caregiver?',
+    'Yes, Delete',
+    true
+  )
+  if (!ok) return
+  await $fetch('/api/caregivers', { method: 'DELETE', body: { id } })
+  const idx = caregivers.value.findIndex(c => c.id === id)
+  if (idx !== -1) caregivers.value[idx] = { ...caregivers.value[idx], status: 'deleted' }
+  showDeletedSection.value = true
+  showToast('Caregiver moved to deleted records', 'error')
+}
+
+// ── Restore ────────────────────────────────────────────────────────────────
+async function restoreCaregiver(c: Caregiver) {
+  const ok = await confirm(
+    `Restore ${c.name} back to active caregivers?`,
+    'Restore Caregiver?',
+    'Yes, Restore',
+    false
+  )
+  if (!ok) return
+  const { city, state } = parseCityState(c.cityState)
+  await $fetch('/api/caregivers', {
+    method: 'PUT',
+    body: { ...c, city, state, status: 'ACTIVE' },
+  })
+  const idx = caregivers.value.findIndex(x => x.id === c.id)
+  if (idx !== -1) caregivers.value[idx] = { ...caregivers.value[idx], status: 'active' }
+  showToast('Caregiver restored successfully', 'success')
+}
+
+function viewCaregiver(c: Caregiver) {
+  navigateTo(`/caregivers/${c.id}`)
+}
+
+function caregiverExportRows(list: Caregiver[]): Record<string, string>[] {
+  return list.map(c => ({
+    Name: c.name,
+    'Phone Number': c.phone,
+    Email: c.email,
+    Address: c.address || '-',
+    'City / State': c.cityState || '-',
+    'First Contact': c.firstContact || '-',
+    'Last Interaction': c.lastInteraction || '-',
+    Keywords: c.keywords.join(', '),
+    Status: c.status.charAt(0).toUpperCase() + c.status.slice(1),
+  }))
+}
+
+async function exportCaregiversExcel() {
+  exportOpen.value = false
+  const { utils, writeFile } = await import('xlsx')
+
+  const headers = ['Name', 'Phone Number', 'Email', 'Address', 'City / State', 'First Contact', 'Last Interaction', 'Keywords', 'Status']
+  const workbook = utils.book_new()
+
+  const appendSheet = (name: string, list: Caregiver[]) => {
+    const rows = caregiverExportRows(list)
+    const worksheet = utils.aoa_to_sheet([
+      headers,
+      ...rows.map(row => headers.map(header => row[header as keyof typeof row] ?? ''))
+    ])
+    utils.book_append_sheet(workbook, worksheet, name)
+  }
+
+  appendSheet('Active', activeOnlyCaregivers.value)
+  appendSheet('Inactive', inactiveCaregivers.value)
+  appendSheet('Deleted', deletedCaregivers.value)
+
+  writeFile(workbook, 'caregivers-directory.xlsx')
+  showToast('Caregivers exported as Excel', 'success')
+}
+
+async function exportCaregiversPDF() {
+  exportOpen.value = false
+  const { default: jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
+
+  const doc = new jsPDF({ orientation: 'landscape' })
+  const headers = [['Name', 'Phone', 'Email', 'Address', 'City / State', 'First Contact', 'Last Interaction', 'Keywords', 'Status']]
+
+  const addSection = (title: string, list: Caregiver[], color: [number, number, number]) => {
+    const startY = ((doc as any).lastAutoTable?.finalY ?? 20) + 12
+    doc.setFontSize(13)
+    doc.text(title, 14, startY)
+    autoTable(doc, {
+      startY: startY + 4,
+      head: headers,
+      body: caregiverExportRows(list).map(row => [
+        row.Name,
+        row['Phone Number'],
+        row.Email,
+        row.Address,
+        row['City / State'],
+        row['First Contact'],
+        row['Last Interaction'],
+        row.Keywords,
+        row.Status,
+      ]),
+      styles: { fontSize: 7.5 },
+      headStyles: { fillColor: color },
+      bodyStyles: { textColor: [16, 42, 67] },
+    })
+  }
+
+  doc.setFontSize(16)
+  doc.text('Caregiver Directory', 14, 14)
+  addSection('Active Caregivers', activeOnlyCaregivers.value, [15, 118, 110])
+  addSection('Inactive Caregivers', inactiveCaregivers.value, [100, 116, 139])
+  addSection('Deleted Caregivers', deletedCaregivers.value, [220, 38, 38])
+
+  doc.save('caregivers-directory.pdf')
+  showToast('Caregivers exported as PDF', 'success')
+}
 </script>
 
 <template>
-  <UContainer class="py-10">
-    <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Caregivers
-        </h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Manage caregiver contact information and interactions
-        </p>
+  <div class="max-w-[1400px] mx-auto p-6 space-y-6">
+
+    <div class="mx-auto grid max-w-[1240px] grid-cols-1 gap-4 xl:grid-cols-[0.9fr_0.95fr_0.85fr]">
+      <button
+        class="rounded-[28px] border border-[#fee2e2] bg-white px-6 py-5 text-left shadow-[0_20px_50px_rgba(220,38,38,0.06)] transition hover:bg-[#fff8f8]"
+        @click="showDeletedSection = !showDeletedSection"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="flex h-11 w-11 items-center justify-center rounded-full bg-[#fef2f2]">
+              <UIcon name="i-heroicons-trash-20-solid" style="width:18px;height:18px;color:#dc2626;" />
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-[#991b1b]">Deleted Caregivers</p>
+              <p class="mt-3 text-3xl font-bold text-[#dc2626]">{{ deletedCaregivers.length }}</p>
+              <p class="mt-2 text-sm text-[#ef4444]">{{ deletedCaregivers.length > 0 ? 'Can be restored anytime' : 'No deleted caregivers' }}</p>
+            </div>
+          </div>
+          <UIcon
+            :name="showDeletedSection ? 'i-heroicons-chevron-up-20-solid' : 'i-heroicons-chevron-down-20-solid'"
+            style="width:18px;height:18px;color:#dc2626;"
+          />
+        </div>
+      </button>
+
+      <div class="rounded-[28px] border border-[#e7edf3] bg-white px-6 py-5 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold text-[#64748b]">Export Caregivers</p>
+            <p class="mt-3 text-3xl font-bold text-[#102a43]">{{ caregivers.length }}</p>
+            <p class="mt-2 text-sm text-[#64748b]">PDF and Excel with separate active, inactive, and deleted sections</p>
+          </div>
+          <div class="relative">
+            <button
+              class="inline-flex items-center gap-2 rounded-2xl border border-[#e7edf3] bg-[#f8fbff] px-4 py-2.5 text-sm font-semibold text-[#475569] transition hover:bg-[#f1f5f9]"
+              @click="exportOpen = !exportOpen"
+            >
+              <UIcon name="i-heroicons-arrow-down-tray-20-solid" style="width:16px;height:16px;" />
+              Export
+              <UIcon name="i-heroicons-chevron-down-20-solid" style="width:13px;height:13px;" />
+            </button>
+            <div
+              v-if="exportOpen"
+              class="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-[#e7edf3] bg-white shadow-[0_20px_40px_rgba(15,23,42,0.10)]"
+            >
+              <button
+                class="flex w-full items-center gap-3 px-4 py-3 text-sm text-[#102a43] hover:bg-[#f0fdf4] transition"
+                @click="exportCaregiversExcel"
+              >
+                <UIcon name="i-heroicons-table-cells-20-solid" style="width:16px;height:16px;color:#16a34a;" />
+                Export Excel
+              </button>
+              <div class="border-t border-[#f1f5f9]"></div>
+              <button
+                class="flex w-full items-center gap-3 px-4 py-3 text-sm text-[#102a43] hover:bg-[#fef2f2] transition"
+                @click="exportCaregiversPDF"
+              >
+                <UIcon name="i-heroicons-document-text-20-solid" style="width:16px;height:16px;color:#dc2626;" />
+                Export PDF
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-      <UButton
-        icon="i-heroicons-plus-20-solid"
-        label="Add Caregiver"
-        color="primary"
-        @click="showAddModal = true"
-      />
+
+      <button
+        class="rounded-[28px] border border-[#f4df95] bg-white px-6 py-5 text-left shadow-[0_20px_50px_rgba(201,162,39,0.12)] transition hover:bg-[#fffcf2]"
+        @click="toggleAddCard"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="flex h-11 w-11 items-center justify-center rounded-full bg-[#fef9ec]">
+              <UIcon :name="showAddCard ? 'i-heroicons-x-mark-20-solid' : 'i-heroicons-plus-20-solid'" style="width:18px;height:18px;color:#c9a227;" />
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-[#8a6d12]">Add Caregiver</p>
+              <p class="mt-3 text-3xl font-bold text-[#c9a227]">+</p>
+              <p class="mt-2 text-sm text-[#64748b]">{{ showAddCard ? 'Close the caregiver form' : 'Create a new caregiver record' }}</p>
+            </div>
+          </div>
+        </div>
+      </button>
     </div>
 
-    <!-- Edit Caregiver Modal -->
+    <!-- ── Add Caregiver Card ────────────────────────────────────────────── -->
+    <Transition name="slide-down">
+      <div v-if="showAddCard" class="rounded-[24px] border border-[#e7edf3] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] overflow-hidden">
+        <div class="flex items-center justify-between px-7 py-5 border-b border-[#f1f5f9]">
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 items-center justify-center rounded-full" style="background:#fef9ec;">
+              <UIcon name="i-heroicons-user-plus-20-solid" style="width:18px;height:18px;color:#c9a227;" />
+            </div>
+            <p class="text-base font-semibold text-[#102a43]">New Caregiver</p>
+          </div>
+        </div>
+        <div class="p-7">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div class="lg:col-span-3">
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Full Name <span class="text-red-500">*</span></label>
+              <UInput v-model="form.name" placeholder="e.g. Sarah Johnson" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Phone Number <span class="text-red-500">*</span></label>
+              <UInput v-model="form.phone" placeholder="+1 (555) 123-4567" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Email <span class="text-red-500">*</span></label>
+              <UInput v-model="form.email" type="email" placeholder="name@email.com" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">City / State</label>
+              <UInput v-model="form.cityState" placeholder="Dallas, TX" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Address</label>
+              <UInput v-model="form.address" placeholder="123 Main St" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">First Contact</label>
+              <UInput v-model="form.firstContact" type="date" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Status</label>
+              <div class="flex gap-2 mt-1">
+                <button
+                  v-for="s in ['active', 'inactive']"
+                  :key="s"
+                  type="button"
+                  class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
+                  :class="form.status === s
+                    ? s === 'active' ? 'bg-green-500 border-green-500 text-white' : 'bg-slate-400 border-slate-400 text-white'
+                    : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#94a3b8]'"
+                  @click="form.status = s as 'active' | 'inactive'"
+                >{{ s }}</button>
+              </div>
+            </div>
+            <div class="lg:col-span-3">
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-2">Keywords</label>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="kw in availableKeywords"
+                  :key="kw"
+                  type="button"
+                  class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
+                  :class="form.keywords.includes(kw) ? 'bg-[#0f766e] border-[#0f766e] text-white' : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#0f766e] hover:text-[#0f766e]'"
+                  @click="toggleKeyword(kw)"
+                >{{ kw }}</button>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 mt-6 pt-5 border-t border-[#f1f5f9]">
+            <button
+              class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-[#e7edf3] text-[#475569] hover:bg-[#f1f5f9] transition"
+              @click="toggleAddCard"
+            >Cancel</button>
+            <button
+              class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              style="background:#c9a227;"
+              :disabled="!form.name.trim() || !form.phone.trim() || !form.email.trim()"
+              @click="saveCaregiver"
+            >
+              <UIcon name="i-heroicons-plus-20-solid" style="width:14px;height:14px;display:inline;margin-right:4px;" />
+              Add Caregiver
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ── Active Caregivers Table ──────────────────────────────────────── -->
+    <div
+      v-if="deletedCaregivers.length > 0 && showDeletedSection"
+      class="rounded-[32px] border border-[#fee2e2] bg-white shadow-[0_8px_24px_rgba(220,38,38,0.06)] overflow-hidden"
+    >
+      <button
+        class="w-full flex items-center justify-between px-7 py-5 text-left"
+        @click="showDeletedSection = !showDeletedSection"
+      >
+        <div class="flex items-center gap-3">
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fef2f2]">
+            <UIcon name="i-heroicons-trash-20-solid" style="width:16px;height:16px;color:#dc2626;" />
+          </div>
+          <div>
+            <p class="text-base font-semibold text-[#991b1b]">Deleted Caregivers</p>
+            <p class="text-sm text-[#ef4444] mt-0.5">{{ deletedCaregivers.length }} record{{ deletedCaregivers.length !== 1 ? 's' : '' }} - can be restored</p>
+          </div>
+        </div>
+        <UIcon
+          name="i-heroicons-chevron-up-20-solid"
+          style="width:18px;height:18px;color:#dc2626;"
+        />
+      </button>
+
+      <Transition name="slide-down">
+        <div v-if="showDeletedSection" class="border-t border-[#fee2e2] overflow-x-auto">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="bg-[#fff5f5]">
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Name</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Phone Number</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Email</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">City / State</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">First Contact</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="c in filteredDeleted"
+                :key="c.id"
+                class="border-t border-[#fee2e2] hover:bg-[#fff5f5] transition duration-150 opacity-75"
+              >
+                <td class="px-4 py-3 font-medium text-[#7f1d1d] whitespace-nowrap line-through decoration-[#fca5a5]">{{ c.name }}</td>
+                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.phone }}</td>
+                <td class="px-4 py-3 text-[#ef4444] truncate max-w-[170px]">{{ c.email }}</td>
+                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.cityState || 'â€”' }}</td>
+                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.firstContact || 'â€”' }}</td>
+                <td class="px-4 py-3">
+                  <button
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#86efac] bg-[#f0fdf4] text-[#15803d] hover:bg-[#dcfce7] transition"
+                    title="Restore caregiver"
+                    @click="restoreCaregiver(c)"
+                  >
+                    <UIcon name="i-heroicons-arrow-path-20-solid" style="width:12px;height:12px;" />
+                    Restore
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Transition>
+    </div>
+
+    <div class="rounded-[32px] border border-[#e7edf3] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] overflow-hidden">
+
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-7 py-5 border-b border-[#f1f5f9]">
+        <div>
+          <p class="text-base font-semibold text-[#102a43]">Caregiver Directory</p>
+          <p class="text-sm text-[#64748b] mt-0.5">{{ filteredActive.length }} total caregivers</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex h-10 items-center gap-2 rounded-2xl border border-[#e7edf3] bg-[#f8fbff] px-4">
+            <UIcon name="i-heroicons-magnifying-glass-20-solid" style="width:16px;height:16px;color:#94a3b8;" />
+            <input
+              v-model="searchQuery"
+              placeholder="Search caregivers..."
+              class="bg-transparent text-sm outline-none w-44 text-[#102a43]"
+            />
+          </div>
+          <button class="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#e7edf3] bg-[#f8fbff] text-[#64748b] hover:bg-[#f1f5f9] transition">
+            <UIcon name="i-heroicons-funnel-20-solid" style="width:16px;height:16px;" />
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-hidden">
+        <table class="caregivers-table w-full table-fixed text-sm border-collapse">
+          <colgroup>
+            <col class="w-[12%]">
+            <col class="w-[11%]">
+            <col class="w-[14%]">
+            <col class="w-[13%]">
+            <col class="w-[11%]">
+            <col class="w-[9%]">
+            <col class="w-[10%]">
+            <col class="w-[9%]">
+            <col class="w-[11%]">
+          </colgroup>
+          <thead>
+            <tr class="bg-[#f8fbff]">
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Name</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Phone Number</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Email</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Address</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">City / State</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">First Contact</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Last Interaction</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Status</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="filteredActive.length === 0">
+              <td colspan="9" class="py-16 text-center text-sm text-[#64748b]">No caregivers found</td>
+            </tr>
+            <tr
+              v-for="c in filteredActive"
+              :key="c.id"
+              class="border-t border-[#f1f5f9] hover:bg-[#f8fbff] transition duration-150"
+            >
+              <td class="px-3 py-3 font-medium text-[#102a43] truncate">{{ c.name }}</td>
+              <td class="px-3 py-3 text-[#64748b] truncate">{{ c.phone }}</td>
+              <td class="px-3 py-3 text-[#64748b] truncate">{{ c.email }}</td>
+              <td class="px-4 py-3 text-[#64748b] whitespace-nowrap">{{ c.address || '—' }}</td>
+              <td class="px-4 py-3 text-[#64748b] whitespace-nowrap">{{ c.cityState || '—' }}</td>
+              <td class="px-4 py-3 text-[#64748b] whitespace-nowrap">{{ c.firstContact || '—' }}</td>
+              <td class="px-4 py-3 text-[#64748b] whitespace-nowrap">{{ c.lastInteraction || '—' }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                <!-- Status toggle pill -->
+                <button
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all"
+                  :class="c.status === 'active'
+                    ? 'bg-[#f0fdf4] border-[#86efac] text-[#15803d] hover:bg-[#dcfce7]'
+                    : 'bg-[#f8fafc] border-[#e2e8f0] text-[#64748b] hover:bg-[#f1f5f9]'"
+                  :title="`Click to mark as ${c.status === 'active' ? 'inactive' : 'active'}`"
+                  @click="toggleStatus(c)"
+                >
+                  <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    :class="c.status === 'active' ? 'bg-green-500' : 'bg-slate-400'"
+                  />
+                  {{ c.status === 'active' ? 'Active' : 'Inactive' }}
+                </button>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-1.5">
+                  <button
+                    class="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e7edf3] bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition"
+                    title="View caregiver"
+                    @click="viewCaregiver(c)"
+                  >
+                    <UIcon name="i-heroicons-eye-20-solid" style="width:13px;height:13px;" />
+                  </button>
+                  <button
+                    class="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e7edf3] bg-[#f0fdf4] text-[#0f766e] hover:bg-[#dcfce7] transition"
+                    title="Edit"
+                    @click="openEditModal(c)"
+                  >
+                    <UIcon name="i-heroicons-pencil-square-20-solid" style="width:13px;height:13px;" />
+                  </button>
+                  <button
+                    class="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e7edf3] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2] transition"
+                    title="Delete"
+                    @click="confirmDelete(c.id, c.name)"
+                  >
+                    <UIcon name="i-heroicons-trash-20-solid" style="width:13px;height:13px;" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Deleted Caregivers Card ───────────────────────────────────────── -->
+    <div
+      v-if="false"
+      class="rounded-[32px] border border-[#fee2e2] bg-white shadow-[0_8px_24px_rgba(220,38,38,0.06)] overflow-hidden"
+    >
+      <!-- Collapsible header -->
+      <button
+        class="w-full flex items-center justify-between px-7 py-5 text-left hover:bg-[#fff5f5] transition"
+        @click="showDeletedSection = !showDeletedSection"
+      >
+        <div class="flex items-center gap-3">
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fef2f2]">
+            <UIcon name="i-heroicons-trash-20-solid" style="width:16px;height:16px;color:#dc2626;" />
+          </div>
+          <div>
+            <p class="text-base font-semibold text-[#991b1b]">Deleted Caregivers</p>
+            <p class="text-sm text-[#ef4444] mt-0.5">{{ deletedCaregivers.length }} record{{ deletedCaregivers.length !== 1 ? 's' : '' }} — can be restored</p>
+          </div>
+        </div>
+        <UIcon
+          :name="showDeletedSection ? 'i-heroicons-chevron-up-20-solid' : 'i-heroicons-chevron-down-20-solid'"
+          style="width:18px;height:18px;color:#dc2626;"
+        />
+      </button>
+
+      <!-- Deleted table -->
+      <Transition name="slide-down">
+        <div v-if="showDeletedSection" class="border-t border-[#fee2e2] overflow-x-auto">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="bg-[#fff5f5]">
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Name</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Phone Number</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Email</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">City / State</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">First Contact</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="c in filteredDeleted"
+                :key="c.id"
+                class="border-t border-[#fee2e2] hover:bg-[#fff5f5] transition duration-150 opacity-75"
+              >
+                <td class="px-4 py-3 font-medium text-[#7f1d1d] whitespace-nowrap line-through decoration-[#fca5a5]">{{ c.name }}</td>
+                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.phone }}</td>
+                <td class="px-4 py-3 text-[#ef4444] truncate max-w-[170px]">{{ c.email }}</td>
+                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.cityState || '—' }}</td>
+                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.firstContact || '—' }}</td>
+                <td class="px-4 py-3">
+                  <button
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#86efac] bg-[#f0fdf4] text-[#15803d] hover:bg-[#dcfce7] transition"
+                    title="Restore caregiver"
+                    @click="restoreCaregiver(c)"
+                  >
+                    <UIcon name="i-heroicons-arrow-path-20-solid" style="width:12px;height:12px;" />
+                    Restore
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Transition>
+    </div>
+
+    <!-- ── Edit Modal ─────────────────────────────────────────────────────── -->
     <UModal v-model:open="showEditModal" title="Edit Caregiver" :ui="{ content: 'sm:max-w-xl' }">
       <template #body>
         <div v-if="editForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
           <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Full Name <span class="text-red-500">*</span>
-            </label>
+            <label class="block text-sm font-medium text-[#475569] mb-1">Full Name <span class="text-red-500">*</span></label>
             <UInput v-model="editForm.name" placeholder="e.g. Sarah Johnson" class="w-full" />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Phone Number <span class="text-red-500">*</span>
-            </label>
+            <label class="block text-sm font-medium text-[#475569] mb-1">Phone Number <span class="text-red-500">*</span></label>
             <UInput v-model="editForm.phone" placeholder="(555) 123-4567" class="w-full" />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email <span class="text-red-500">*</span>
-            </label>
+            <label class="block text-sm font-medium text-[#475569] mb-1">Email <span class="text-red-500">*</span></label>
             <UInput v-model="editForm.email" type="email" placeholder="name@email.com" class="w-full" />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+            <label class="block text-sm font-medium text-[#475569] mb-1">Address</label>
             <UInput v-model="editForm.address" placeholder="123 Main St" class="w-full" />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City / State</label>
-            <UInput v-model="editForm.cityState" placeholder="Boston, MA" class="w-full" />
+            <label class="block text-sm font-medium text-[#475569] mb-1">City / State</label>
+            <UInput v-model="editForm.cityState" placeholder="Dallas, TX" class="w-full" />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Contact</label>
+            <label class="block text-sm font-medium text-[#475569] mb-1">First Contact</label>
             <UInput v-model="editForm.firstContact" type="date" class="w-full" />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Interaction</label>
+            <label class="block text-sm font-medium text-[#475569] mb-1">Last Interaction</label>
             <UInput v-model="editForm.lastInteraction" type="date" class="w-full" />
           </div>
-
           <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Keywords Used</label>
+            <label class="block text-sm font-medium text-[#475569] mb-2">Keywords Used</label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="kw in availableKeywords"
                 :key="kw"
                 type="button"
                 class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
-                :class="editForm.keywords.includes(kw)
-                  ? 'bg-primary-500 border-primary-500 text-white'
-                  : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
+                :class="editForm.keywords.includes(kw) ? 'bg-[#0f766e] border-[#0f766e] text-white' : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#0f766e] hover:text-[#0f766e]'"
                 @click="toggleEditKeyword(kw)"
-              >
-                {{ kw }}
-              </button>
+              >{{ kw }}</button>
             </div>
           </div>
-
           <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+            <label class="block text-sm font-medium text-[#475569] mb-2">Status</label>
             <div class="flex gap-3">
               <button
                 v-for="s in ['active', 'inactive']"
@@ -324,20 +775,14 @@ function toggleEditKeyword(kw: string) {
                 type="button"
                 class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
                 :class="editForm.status === s
-                  ? s === 'active'
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'bg-gray-400 border-gray-400 text-white'
-                  : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
-                @click="editForm.status = s as 'active' | 'inactive'"
-              >
-                {{ s }}
-              </button>
+                  ? s === 'active' ? 'bg-green-500 border-green-500 text-white' : 'bg-slate-400 border-slate-400 text-white'
+                  : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#94a3b8]'"
+                @click="editForm!.status = s as 'active' | 'inactive'"
+              >{{ s }}</button>
             </div>
           </div>
-
         </div>
       </template>
-
       <template #footer>
         <div class="flex justify-end gap-2">
           <UButton color="neutral" variant="outline" label="Cancel" @click="cancelEdit" />
@@ -351,128 +796,39 @@ function toggleEditKeyword(kw: string) {
       </template>
     </UModal>
 
-    <!-- Add Caregiver Modal -->
-    <UModal v-model:open="showAddModal" title="Add Caregiver" :ui="{ content: 'sm:max-w-xl' }">
-      <template #body>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-200">
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Full Name <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="form.name" placeholder="e.g. Sarah Johnson" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Phone Number <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="form.phone" placeholder="(555) 123-4567" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="form.email" type="email" placeholder="name@email.com" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-            <UInput v-model="form.address" placeholder="123 Main St" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City / State</label>
-            <UInput v-model="form.cityState" placeholder="Boston, MA" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Contact</label>
-            <UInput v-model="form.firstContact" type="date" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Interaction</label>
-            <UInput v-model="form.lastInteraction" type="date" class="w-full" />
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Keywords Used</label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="kw in availableKeywords"
-                :key="kw"
-                type="button"
-                class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
-                :class="form.keywords.includes(kw)
-                  ? 'bg-primary-500 border-primary-500 text-white'
-                  : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
-                @click="toggleKeyword(kw)"
-              >
-                {{ kw }}
-              </button>
-            </div>
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-            <div class="flex gap-3">
-              <button
-                v-for="s in ['active', 'inactive']"
-                :key="s"
-                type="button"
-                class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
-                :class="form.status === s
-                  ? s === 'active'
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'bg-gray-400 border-gray-400 text-white'
-                  : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
-                @click="form.status = s as 'active' | 'inactive'"
-              >
-                {{ s }}
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </template>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="outline" label="Cancel" @click="cancelAdd" />
-          <UButton
-            color="primary"
-            label="Save"
-            :disabled="!form.name.trim() || !form.phone.trim() || !form.email.trim()"
-            @click="saveCaregiver"
-          />
-        </div>
-      </template>
-    </UModal>
-
-    <!-- Table Card -->
-    <UCard class="w-full bg-white border-2 border-black rounded-xl p-2 dark:bg-[#134e4a] dark:border-white">
-      <template #header>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">Caregiver Directory</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {{ filteredData.length }} total caregivers
-            </p>
-          </div>
-          <UInput
-            v-model="searchQuery"
-            icon="i-heroicons-magnifying-glass-20-solid"
-            placeholder="Search caregivers..."
-            size="sm"
-            class="w-56"
-          />
-        </div>
-      </template>
-
-      <UTable :data="filteredData" :columns="columns" />
-    </UCard>
-  </UContainer>
-
+  </div>
 </template>
+
+<style scoped>
+.slide-down-enter-active {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.slide-down-leave-active {
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.caregivers-table th,
+.caregivers-table td {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.caregivers-table th {
+  white-space: normal;
+}
+
+.caregivers-table td:nth-child(1),
+.caregivers-table td:nth-child(2),
+.caregivers-table td:nth-child(3),
+.caregivers-table td:nth-child(4),
+.caregivers-table td:nth-child(5) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

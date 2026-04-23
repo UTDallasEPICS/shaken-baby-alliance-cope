@@ -4,18 +4,17 @@ export default defineEventHandler(async () => {
   const caregivers = await prisma.caregiver.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
-      messages: {
-        select: {
-          keywordDetected: true,
-        },
+      keywords: {
+        orderBy: { keyword: 'asc' },
+        select: { keyword: true },
       },
     },
   })
 
   return {
-    caregivers: caregivers.map((c) => ({
-      ...c,
-      messages: c.messages || [],
+    caregivers: caregivers.map((caregiver) => ({
+      ...caregiver,
+      keywords: caregiver.keywords.map((entry) => entry.keyword),
     })),
   }
 })

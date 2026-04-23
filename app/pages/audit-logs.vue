@@ -31,18 +31,21 @@ function actionColor(action: AuditRow['action']) {
 </script>
 
 <template>
-  <UContainer class="py-6 space-y-4">
+  <div class="max-w-[1400px] mx-auto p-6 space-y-6">
     <div class="flex items-start justify-between gap-4">
       <div>
-        <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Audit Logs</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-300">Track all system activities and changes</p>
+        <h1 class="text-3xl font-semibold tracking-tight text-[#102a43]">Audit Logs</h1>
+        <p class="mt-2 text-base text-[#64748b]">Track all system activities and changes</p>
       </div>
       <UButton color="neutral" variant="soft" icon="i-heroicons-arrow-down-tray-20-solid" label="Export Logs" />
     </div>
 
-    <UCard class="bg-white! border-2 border-black rounded-xl p-3 dark:bg-[#134e4a]! dark:border-white space-y-3">
+    <div class="rounded-[32px] border border-[#e7edf3] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] overflow-hidden p-6 space-y-5">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <UInput icon="i-heroicons-magnifying-glass-20-solid" placeholder="Search user or resource..." />
+        <div class="flex h-11 items-center gap-3 rounded-2xl border border-[#e7edf3] bg-[#f8fbff] px-4">
+          <UIcon name="i-heroicons-magnifying-glass-20-solid" style="width:16px;height:16px;color:#94a3b8;" />
+          <input placeholder="Search user or resource..." class="w-full bg-transparent text-sm outline-none text-[#102a43]" />
+        </div>
         <USelect :items="['All Actions', 'Create', 'Update', 'Delete', 'Send', 'Login']" />
         <USelect :items="['All Resources', 'Flow', 'Template', 'User', 'Emergency Alert', 'Caregiver']" />
         <UInput type="date" />
@@ -51,31 +54,31 @@ function actionColor(action: AuditRow['action']) {
       <div class="overflow-x-auto">
         <table class="w-full min-w-[1100px] text-sm">
           <thead>
-            <tr class="border-b border-gray-200 dark:border-white/20">
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Timestamp</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">User</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Action</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Resource</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Resource ID</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">IP Address</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Status</th>
+            <tr class="bg-[#f8fbff]">
+              <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">Timestamp</th>
+              <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">User</th>
+              <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">Action</th>
+              <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">Resource</th>
+              <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">Resource ID</th>
+              <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">IP Address</th>
+              <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">Status</th>
             </tr>
           </thead>
           <tbody>
             <tr
               v-for="log in auditLogs"
               :key="log.id"
-              class="border-b border-gray-100 dark:border-white/10 last:border-b-0 hover:bg-gray-50 dark:hover:bg-white/5"
+              class="border-t border-[#f1f5f9] hover:bg-[#f8fbff] transition duration-150"
             >
-              <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ log.timestamp }}</td>
-              <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ log.user }}</td>
-              <td class="px-4 py-3">
+              <td class="px-5 py-4 text-[#64748b]">{{ log.timestamp }}</td>
+              <td class="px-5 py-4 font-medium text-[#102a43]">{{ log.user }}</td>
+              <td class="px-5 py-4">
                 <UBadge :label="log.action" :color="actionColor(log.action)" variant="solid" />
               </td>
-              <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ log.resource }}</td>
-              <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ log.resourceId }}</td>
-              <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ log.ip }}</td>
-              <td class="px-4 py-3">
+              <td class="px-5 py-4 text-[#475569]">{{ log.resource }}</td>
+              <td class="px-5 py-4 text-[#64748b]">{{ log.resourceId }}</td>
+              <td class="px-5 py-4 text-[#64748b]">{{ log.ip }}</td>
+              <td class="px-5 py-4">
                 <UBadge :label="log.status" :color="log.status === 'Success' ? 'success' : 'error'" variant="solid" />
               </td>
             </tr>
@@ -84,10 +87,9 @@ function actionColor(action: AuditRow['action']) {
       </div>
 
       <div class="flex items-center justify-between pt-1">
-        <p class="text-xs text-gray-500 dark:text-gray-300">Showing 1-8 of 248 logs</p>
+        <p class="text-xs text-[#64748b]">Showing 1–8 of 248 logs</p>
         <UPagination :total="248" :default-page="1" :items-per-page="8" />
       </div>
-    </UCard>
-  </UContainer>
+    </div>
+  </div>
 </template>
-

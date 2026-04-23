@@ -1,108 +1,39 @@
 <script setup lang="ts">
-const stats = [
-  {
-    title: 'Total Messages',
-    value: '1,247',
-    subtitle: 'Today',
-    valueClass: 'text-gray-900 dark:text-white'
-  },
-  {
-    title: 'Delivered',
-    value: '1,189',
-    subtitle: '95.3% success rate',
-    valueClass: 'text-green-600 dark:text-green-400'
-  },
-  {
-    title: 'Failed',
-    value: '42',
-    subtitle: '3.4% failure rate',
-    valueClass: 'text-red-600 dark:text-red-400'
-  },
-  {
-    title: 'Pending',
-    value: '16',
-    subtitle: 'In queue',
-    valueClass: 'text-amber-500 dark:text-amber-400'
-  }
-]
-
-const keywordOptions = ['All Keywords', 'HELP', 'COPE', 'EMERGENCY', 'CALM']
-const statusOptions = ['All Status', 'Delivered', 'Failed', 'Pending']
-
+const searchQuery = ref('')
 const selectedKeyword = ref('All Keywords')
 const selectedStatus = ref('All Status')
-const searchQuery = ref('')
+const exportOpen = ref(false)
 
-const logs = ref([
-  {
-    id: 1,
-    timestamp: '2024-03-05 14:45:23',
-    phoneNumber: '(555) 123-4567',
-    keyword: 'HELP',
-    workflowStep: 'Step 1: Initial Response',
-    messageSent: 'We understand your baby may need support right now. Reply SAFE if you are okay or EMERGENCY if you need urgent help.',
-    status: 'Delivered'
-  },
-  {
-    id: 2,
-    timestamp: '2024-03-05 14:32:15',
-    phoneNumber: '(555) 234-5678',
-    keyword: 'COPE',
-    workflowStep: 'Step 2: Calming Techniques',
-    messageSent: 'Try these calming techniques: take 3 slow breaths, relax your shoulders, and focus on one thing you can hear.',
-    status: 'Delivered'
-  },
-  {
-    id: 3,
-    timestamp: '2024-03-05 14:18:47',
-    phoneNumber: '(555) 345-6789',
-    keyword: 'EMERGENCY',
-    workflowStep: 'Step 1: Emergency Contacts',
-    messageSent: 'Emergency contacts: National Maternal Mental Health Hotline, 911 if immediate danger, and your local emergency support.',
-    status: 'Failed'
-  },
-  {
-    id: 4,
-    timestamp: '2024-03-05 13:54:32',
-    phoneNumber: '(555) 456-7890',
-    keyword: 'HELP',
-    workflowStep: 'Step 3: Breathing Exercises',
-    messageSent: 'Take a deep breath. Here are 3 guided breathing exercises you can try in the next two minutes.',
-    status: 'Delivered'
-  },
-  {
-    id: 5,
-    timestamp: '2024-03-05 13:42:18',
-    phoneNumber: '(555) 567-8901',
-    keyword: 'CALM',
-    workflowStep: 'Step 1: Initial Response',
-    messageSent: 'We are here to help you stay grounded. Start by naming 5 things you can see around you.',
-    status: 'Pending'
-  }
-])
+const statusOptions = ['All Status', 'Delivered', 'Failed', 'Pending']
 
-const filteredLogs = computed(() => {
-  return logs.value.filter((log) => {
-    const matchesKeyword =
-      selectedKeyword.value === 'All Keywords' || log.keyword === selectedKeyword.value
-
-    const matchesStatus =
-      selectedStatus.value === 'All Status' || log.status === selectedStatus.value
-
-    const q = searchQuery.value.trim().toLowerCase()
-    const matchesSearch =
-      !q ||
-      log.phoneNumber.toLowerCase().includes(q) ||
-      log.messageSent.toLowerCase().includes(q) ||
-      log.keyword.toLowerCase().includes(q) ||
-      log.workflowStep.toLowerCase().includes(q)
-
-    return matchesKeyword && matchesStatus && matchesSearch
-  })
+const { data, pending: loading } = await useFetch('/api/message-logs', {
+  query: computed(() => ({
+    keyword: selectedKeyword.value,
+    status: selectedStatus.value,
+    search: searchQuery.value || undefined
+  })),
+  watch: [selectedKeyword, selectedStatus, searchQuery]
 })
+
+const stats = computed(() => {
+  const s = data.value?.stats
+  if (!s) return []
+  const successRate = s.total > 0 ? ((s.delivered / s.total) * 100).toFixed(1) : '0.0'
+  const failRate = s.total > 0 ? ((s.failed / s.total) * 100).toFixed(1) : '0.0'
+  return [
+    { title: 'Total Messages', value: s.total.toLocaleString(), subtitle: 'All time', valueClass: 'text-[#102a43]' },
+    { title: 'Delivered', value: s.delivered.toLocaleString(), subtitle: `${successRate}% success rate`, valueClass: 'text-green-600' },
+    { title: 'Failed', value: s.failed.toLocaleString(), subtitle: `${failRate}% failure rate`, valueClass: 'text-red-600' },
+    { title: 'Pending', value: s.pending.toLocaleString(), subtitle: 'In queue', valueClass: 'text-amber-500' }
+  ]
+})
+
+const keywordOptions = computed(() => data.value?.keywordOptions ?? ['All Keywords'])
+const logs = computed(() => data.value?.logs ?? [])
 
 function keywordBadgeColor(keyword: string) {
   if (keyword === 'EMERGENCY') return 'error'
+  if (keyword === 'CRISIS') return 'warning'
   return 'primary'
 }
 
@@ -112,154 +43,158 @@ function statusBadgeColor(status: string) {
   if (status === 'Pending') return 'warning'
   return 'neutral'
 }
+
+function formatTimestamp(ts: string) {
+  return new Date(ts).toLocaleString()
+}
+
+async function exportExcel() {
+  exportOpen.value = false
+  const { utils, writeFile } = await import('xlsx')
+  const rows = logs.value.map((l: any) => ({
+    Timestamp: formatTimestamp(l.timestamp),
+    Contact: l.contactName ?? '',
+    'Phone Number': l.phone,
+    Keyword: l.keyword ?? '',
+    Direction: l.direction ?? '',
+    'Message Sent': l.messageSent ?? '',
+    Status: l.status ?? '',
+  }))
+  const ws = utils.json_to_sheet(rows)
+  const wb = utils.book_new()
+  utils.book_append_sheet(wb, ws, 'Message Logs')
+  writeFile(wb, 'message-logs.xlsx')
+}
+
+async function exportPDF() {
+  exportOpen.value = false
+  const { default: jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
+  const doc = new jsPDF({ orientation: 'landscape' })
+  doc.setFontSize(14)
+  doc.text('Message Logs', 14, 15)
+  autoTable(doc, {
+    startY: 22,
+    head: [['Timestamp', 'Contact', 'Phone Number', 'Keyword', 'Direction', 'Message Sent', 'Status']],
+    body: logs.value.map((l: any) => [
+      formatTimestamp(l.timestamp),
+      l.contactName ?? '',
+      l.phone ?? '',
+      l.keyword ?? '',
+      l.direction ?? '',
+      l.messageSent ?? '',
+      l.status ?? '',
+    ]),
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [15, 118, 110] },
+  })
+  doc.save('message-logs.pdf')
+}
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-8">
-    <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-      <div>
-        <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Message Logs
-        </h1>
-        <p class="mt-2 text-lg text-gray-500 dark:text-gray-400">
-          View and analyze all SMS activity and delivery status
-        </p>
-      </div>
+  <div class="mx-auto w-full max-w-[1400px] min-w-0 p-6 space-y-6 overflow-x-hidden">
 
-      <UButton
-        icon="i-heroicons-arrow-down-tray"
-        label="Export Logs"
-        color="neutral"
-        variant="outline"
-        size="lg"
-      />
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-      <UCard v-for="stat in stats" :key="stat.title" class="rounded-2xl">
-        <div class="space-y-6 min-h-[160px] flex flex-col justify-between">
-          <p class="text-lg font-semibold text-gray-500 dark:text-gray-400">
-            {{ stat.title }}
-          </p>
-
-          <div>
-            <p class="text-4xl font-bold" :class="stat.valueClass">
-              {{ stat.value }}
-            </p>
-            <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-              {{ stat.subtitle }}
-            </p>
-          </div>
+    <!-- Export button row -->
+    <div class="flex justify-end">
+      <div class="relative">
+        <button
+          class="inline-flex items-center gap-2 rounded-2xl border border-[#e7edf3] bg-white px-4 py-2.5 text-sm font-semibold text-[#475569] shadow-sm hover:bg-[#f8fbff] transition"
+          @click="exportOpen = !exportOpen"
+        >
+          <UIcon name="i-heroicons-arrow-down-tray-20-solid" style="width:16px;height:16px;" />
+          Export Logs
+          <UIcon name="i-heroicons-chevron-down-20-solid" style="width:13px;height:13px;" />
+        </button>
+        <div
+          v-if="exportOpen"
+          class="absolute right-0 z-50 mt-2 w-44 rounded-2xl border border-[#e7edf3] bg-white shadow-[0_20px_40px_rgba(15,23,42,0.10)] overflow-hidden"
+        >
+          <button
+            class="flex w-full items-center gap-3 px-4 py-3 text-sm text-[#102a43] hover:bg-[#f0fdf4] transition"
+            @click="exportExcel"
+          >
+            <UIcon name="i-heroicons-table-cells-20-solid" style="width:16px;height:16px;color:#16a34a;" />
+            Export as Excel
+          </button>
+          <div class="border-t border-[#f1f5f9]"></div>
+          <button
+            class="flex w-full items-center gap-3 px-4 py-3 text-sm text-[#102a43] hover:bg-[#fef2f2] transition"
+            @click="exportPDF"
+          >
+            <UIcon name="i-heroicons-document-text-20-solid" style="width:16px;height:16px;color:#dc2626;" />
+            Export as PDF
+          </button>
         </div>
-      </UCard>
+      </div>
     </div>
 
-    <UCard class="rounded-2xl overflow-hidden">
-      <div class="flex flex-col xl:flex-row gap-4 mb-6">
-        <UInput
-          v-model="searchQuery"
-          icon="i-heroicons-magnifying-glass-20-solid"
-          placeholder="Search by phone number or message..."
-          class="flex-1"
-          size="xl"
-        />
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div
+        v-for="stat in stats"
+        :key="stat.title"
+        class="rounded-[32px] border border-[#e7edf3] bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)]"
+      >
+        <p class="text-sm font-semibold text-[#64748b]">{{ stat.title }}</p>
+        <p class="mt-4 text-4xl font-bold" :class="stat.valueClass">{{ stat.value }}</p>
+        <p class="mt-2 text-sm text-[#64748b]">{{ stat.subtitle }}</p>
+      </div>
+    </div>
 
-        <USelect
-          v-model="selectedKeyword"
-          :items="keywordOptions"
-          class="w-full xl:w-56"
-          size="xl"
-        />
-
-        <USelect
-          v-model="selectedStatus"
-          :items="statusOptions"
-          class="w-full xl:w-56"
-          size="xl"
-        />
+    <div class="min-w-0 rounded-[32px] border border-[#e7edf3] bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] space-y-5 overflow-hidden">
+      <div class="flex flex-col xl:flex-row gap-4">
+        <div class="flex h-11 flex-1 items-center gap-3 rounded-2xl border border-[#e7edf3] bg-[#f8fbff] px-4">
+          <UIcon name="i-heroicons-magnifying-glass-20-solid" style="width:18px;height:18px;color:#94a3b8;" />
+          <input
+            v-model="searchQuery"
+            placeholder="Search by phone number or message..."
+            class="w-full bg-transparent text-sm outline-none text-[#102a43]"
+          />
+        </div>
+        <USelect v-model="selectedKeyword" :items="keywordOptions" class="w-full xl:w-56" />
+        <USelect v-model="selectedStatus" :items="statusOptions" class="w-full xl:w-56" />
       </div>
 
-      <div class="overflow-x-auto -mx-6">
-        <table class="min-w-full text-sm">
+      <div v-if="loading" class="py-16 text-center text-sm text-[#64748b]">Loading...</div>
+
+      <div v-else class="w-full min-w-0 overflow-x-auto">
+        <table class="w-full min-w-[980px] table-fixed text-sm">
           <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-800">
-              <th class="text-left py-4 px-6 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                Timestamp
-              </th>
-              <th class="text-left py-4 px-6 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                Phone Number
-              </th>
-              <th class="text-left py-4 px-6 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                Keyword
-              </th>
-              <th class="text-left py-4 px-6 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                Workflow Step
-              </th>
-              <th class="text-left py-4 px-6 font-semibold text-gray-900 dark:text-white min-w-[320px]">
-                Message Sent
-              </th>
-              <th class="text-left py-4 px-6 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                Status
-              </th>
+            <tr class="bg-[#f8fbff]">
+              <th class="w-[18%] px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569] whitespace-nowrap">Timestamp</th>
+              <th class="w-[15%] px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569] whitespace-nowrap">Contact</th>
+              <th class="w-[15%] px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569] whitespace-nowrap">Phone Number</th>
+              <th class="w-[10%] px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569] whitespace-nowrap">Keyword</th>
+              <th class="w-[11%] px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569] whitespace-nowrap">Direction</th>
+              <th class="w-[23%] px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">Message Sent</th>
+              <th class="w-[8%] px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[#475569] whitespace-nowrap">Status</th>
             </tr>
           </thead>
-
           <tbody>
             <tr
-              v-for="log in filteredLogs"
+              v-for="log in logs"
               :key="log.id"
-              class="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors"
+              class="border-t border-[#f1f5f9] row-hover"
             >
-              <td class="py-4 px-6 text-gray-500 dark:text-gray-400 whitespace-nowrap align-top">
-                {{ log.timestamp }}
+              <td class="py-4 px-5 text-[#64748b] whitespace-nowrap align-top">{{ formatTimestamp(log.timestamp) }}</td>
+              <td class="py-4 px-5 font-medium text-[#102a43] whitespace-nowrap align-top">{{ log.contactName || 'Unknown Sender' }}</td>
+              <td class="py-4 px-5 font-medium text-[#102a43] whitespace-nowrap align-top">{{ log.phone }}</td>
+              <td class="py-4 px-5 align-top">
+                <UBadge :color="keywordBadgeColor(log.keyword)" variant="soft">{{ log.keyword }}</UBadge>
               </td>
-
-              <td class="py-4 px-6 text-gray-900 dark:text-white whitespace-nowrap align-top font-medium">
-                {{ log.phoneNumber }}
-              </td>
-
-              <td class="py-4 px-6 align-top">
-                <UBadge
-                  :color="keywordBadgeColor(log.keyword)"
-                  variant="soft"
-                  size="lg"
-                >
-                  {{ log.keyword }}
-                </UBadge>
-              </td>
-
-              <td class="py-4 px-6 text-gray-900 dark:text-white whitespace-nowrap align-top">
-                {{ log.workflowStep }}
-              </td>
-
-              <td class="py-4 px-6 text-gray-600 dark:text-gray-300 align-top">
-                <p class="line-clamp-2">
-                  {{ log.messageSent }}
-                </p>
-              </td>
-
-              <td class="py-4 px-6 align-top">
-                <UBadge
-                  :color="statusBadgeColor(log.status)"
-                  variant="subtle"
-                  size="lg"
-                >
-                  {{ log.status }}
-                </UBadge>
+              <td class="py-4 px-5 text-[#64748b] whitespace-nowrap align-top uppercase text-xs tracking-wide">{{ log.direction }}</td>
+              <td class="py-4 px-5 text-[#475569] align-top break-words"><p class="line-clamp-2">{{ log.messageSent }}</p></td>
+              <td class="py-4 px-5 align-top">
+                <UBadge :color="statusBadgeColor(log.status)" variant="subtle">{{ log.status }}</UBadge>
               </td>
             </tr>
-
-            <tr v-if="filteredLogs.length === 0">
-              <td
-                colspan="6"
-                class="py-10 px-6 text-center text-gray-500 dark:text-gray-400"
-              >
-                No message logs found.
-              </td>
+            <tr v-if="logs.length === 0">
+              <td colspan="7" class="py-10 px-5 text-center text-sm text-[#64748b]">No message logs found.</td>
             </tr>
           </tbody>
         </table>
       </div>
-    </UCard>
-  </UContainer>
+    </div>
+  </div>
 </template>

@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "./generated/client"
 }
 
@@ -8,35 +8,35 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String    @unique
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  role          String    @default("user")
+  id              String    @id
+  name            String    @unique
+  email           String    @unique
+  emailVerified   Boolean   @default(false)
+  image           String?
+  role            String    @default("user")
   username        String?   @unique
   displayUsername String?
-  sessions      Session[]
-  accounts      Account[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  @@unique([email])
+  sessions Session[]
+  accounts Account[]
+
   @@map("user")
 }
 
 model Session {
   id        String   @id
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@map("session")
 }
@@ -46,7 +46,6 @@ model Account {
   accountId             String
   providerId            String
   userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -56,6 +55,8 @@ model Account {
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("account")
@@ -73,88 +74,116 @@ model Verification {
   @@map("verification")
 }
 
-//////////////////////////////////////////////////////////////
-// PROJECT TABLES START HERE
-//////////////////////////////////////////////////////////////
-
 model Caregiver {
-  id               String    @id @default(cuid())
-  name             String?
-  phone            String    @unique
-  email            String?
-  address          String?
-  city             String?
-  state            String?
-  zip              String?
-  firstContactDate DateTime  @default(now())
-  lastInteraction  DateTime?
-  status           String    @default("ACTIVE")
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                String   @id @default(cuid())
+  name              String?
+  phone             String   @unique
+  email             String?
+  address           String?
+  city              String?
+  state             String?
+  zip               String?
+  preferredLanguage String?
+  status            String   @default("ACTIVE")
+  currentWorkflowId String?
+  currentStepId     String?
+  firstContactDate  DateTime @default(now())
+  lastInteraction   DateTime?
+  deletedAt         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  messages Message[]
+  keywords    CaregiverKeyword[]
+  messages    Message[]
+  messageLogs MessageLog[]
+  notes       CaregiverNote[]
+  aiResponses AiResponseLog[]
 
+  @@index([status])
   @@map("caregiver")
 }
 
-model Keyword {
+model CaregiverKeyword {
   id          String   @id @default(cuid())
-  keyword     String   @unique
-  description String?
-  isActive    Boolean  @default(true)
+  caregiverId String
+  keyword     String
+  createdAt   DateTime @default(now())
+
+  caregiver Caregiver @relation(fields: [caregiverId], references: [id], onDelete: Cascade)
+
+  @@unique([caregiverId, keyword])
+  @@index([keyword])
+  @@map("caregiver_keyword")
+}
+
+model CaregiverNote {
+  id          String   @id @default(cuid())
+  caregiverId String
+  body        String
+  authorName  String   @default("Admin User")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workflows Workflow[]
+  caregiver Caregiver @relation(fields: [caregiverId], references: [id], onDelete: Cascade)
 
-  @@map("keyword")
+  @@index([caregiverId, createdAt])
+  @@map("caregiver_note")
 }
 
 model Workflow {
-  id          String   @id @default(cuid())
-  keywordId   String
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id
+  name           String
+  description    String?
+  status         String   @default("draft")
+  isActive       Boolean  @default(true)
+  publishedAt    DateTime?
+  selectedStepId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  keyword Keyword        @relation(fields: [keywordId], references: [id], onDelete: Cascade)
-  steps   WorkflowStep[]
+  steps MessageWorkflowStep[]
 
-  @@index([keywordId])
+  @@index([status])
   @@map("workflow")
 }
 
-model WorkflowStep {
-  id          String   @id @default(cuid())
-  workflowId  String
-  stepOrder   Int
-  title       String?
-  messageText String
-  messageType String   @default("TEXT")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  workflow Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  options  WorkflowOption[]
-
-  @@unique([workflowId, stepOrder])
-  @@index([workflowId])
-  @@map("workflow_step")
-}
-
-model WorkflowOption {
-  id         String   @id @default(cuid())
-  stepId     String
-  optionText String
+model MessageWorkflowStep {
+  id         String   @id
+  workflowId String
+  type       String
+  title      String
+  keyword    String?
+  contentEn  String   @default("")
+  contentEs  String   @default("")
   nextStepId String?
+  positionX  Int      @default(0)
+  positionY  Int      @default(0)
+  sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  step WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  workflow Workflow               @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  options  MessageWorkflowOption[]
 
-  @@index([stepId])
+  @@index([workflowId, sortOrder])
+  @@index([workflowId, type])
+  @@map("workflow_step")
+}
+
+model MessageWorkflowOption {
+  id           String   @id
+  stepId       String
+  labelEn      String   @default("")
+  labelEs      String   @default("")
+  replyValue   String
+  targetStepId String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  step MessageWorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([stepId, sortOrder])
   @@map("workflow_option")
 }
 
@@ -162,32 +191,141 @@ model Message {
   id                String   @id @default(cuid())
   caregiverId       String?
   phone             String
+  contactName       String   @default("Unknown Sender")
   messageText       String
+  normalizedText    String?
   direction         String
   keywordDetected   String?
+  language          String?
+  workflowId        String?
+  workflowStepId    String?
+  providerName      String?
   providerMessageId String?
+  sentAt            DateTime?
+  receivedAt        DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  caregiver Caregiver?   @relation(fields: [caregiverId], references: [id], onDelete: SetNull)
+  caregiver Caregiver? @relation(fields: [caregiverId], references: [id], onDelete: SetNull)
   logs      MessageLog[]
+  aiResponses AiResponseLog[]
 
-  @@index([caregiverId])
-  @@index([phone])
+  @@index([caregiverId, createdAt])
+  @@index([phone, createdAt])
+  @@index([workflowId])
+  @@index([workflowStepId])
   @@map("message")
 }
 
+model SystemSettings {
+  id                        String   @id @default("singleton")
+  smsProvider               String   @default("twilio")
+  twilioAccountSid          String   @default("")
+  twilioAuthToken           String   @default("")
+  twilioPhoneNumber         String   @default("")
+  twilioMessagingServiceSid String   @default("")
+  defaultResponseMessage    String   @default("Thank you for contacting the Shaken Baby Alliance COPE Support System. We're here to help.")
+  systemActive              Boolean  @default(true)
+  chatbotEnabled            Boolean  @default(true)
+  aiEnabled                 Boolean  @default(false)
+  aiProvider                String   @default("gemini")
+  aiApiKey                  String   @default("")
+  aiModel                   String   @default("gemini-2.5-flash")
+  autoArchiveMessages       Boolean  @default(true)
+  autoArchiveDays           Int      @default(90)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
 model MessageLog {
-  id               String   @id @default(cuid())
-  messageId        String
-  status           String   @default("PENDING")
-  providerResponse String?
+  id                String   @id @default(cuid())
+  messageId         String?
+  caregiverId       String?
+  phone             String
+  contactName       String   @default("Unknown Sender")
+  eventType         String   @default("MESSAGE")
+  status            String   @default("PENDING")
+  direction         String?
+  providerName      String?
+  providerMessageId String?
+  providerResponse  String?
+  errorMessage      String?
+  details           String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  message   Message?   @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  caregiver Caregiver? @relation(fields: [caregiverId], references: [id], onDelete: SetNull)
+
+  @@index([messageId, createdAt])
+  @@index([caregiverId, createdAt])
+  @@index([phone, createdAt])
+  @@map("message_log")
+}
+
+model AiKnowledgeEntry {
+  id        String   @id @default(cuid())
+  title     String
+  category  String
+  content   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chunks AiKnowledgeChunk[]
+
+  @@index([active])
+  @@index([category])
+  @@map("ai_knowledge_entry")
+}
+
+model AiKnowledgeChunk {
+  id                 String    @id @default(cuid())
+  entryId            String
+  chunkText          String
+  chunkHash          String
+  tokenCount         Int       @default(0)
+  embeddingJson      String?
+  embeddingModel     String?
+  embeddingProvider  String?
+  embeddingDimension Int?
+  embeddedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  entry AiKnowledgeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, chunkHash])
+  @@index([entryId])
+  @@index([embeddingModel])
+  @@map("ai_knowledge_chunk")
+}
+
+model AiResponseLog {
+  id              String   @id @default(cuid())
+  messageId        String?
+  caregiverId      String?
+  phone            String
+  userMessage      String
+  aiResponse       String?
+  matchedEntryIds  String?
+  matchedChunkIds  String?
+  retrievalMode    String?
+  embeddingModel   String?
+  emergencyFlag    Boolean  @default(false)
+  provider         String
+  model            String
+  status           String   @default("SUCCESS")
   errorMessage     String?
   createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
 
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message   Message?   @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  caregiver Caregiver? @relation(fields: [caregiverId], references: [id], onDelete: SetNull)
 
   @@index([messageId])
-  @@map("message_log")
+  @@index([caregiverId])
+  @@index([phone])
+  @@map("ai_response_log")
 }

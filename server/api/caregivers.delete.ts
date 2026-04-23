@@ -1,14 +1,18 @@
 import { prisma } from '../utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
+  const body = await readBody<{ id?: string }>(event)
 
-  await prisma.message.deleteMany({
-    where: { caregiverId: body.id },
-  })
+  if (!body?.id) {
+    throw createError({ statusCode: 400, message: 'Caregiver id is required' })
+  }
 
-  await prisma.caregiver.delete({
+  await prisma.caregiver.update({
     where: { id: body.id },
+    data: {
+      status: 'DELETED',
+      deletedAt: new Date(),
+    },
   })
 
   return { success: true }

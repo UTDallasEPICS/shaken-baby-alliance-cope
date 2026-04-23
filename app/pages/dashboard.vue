@@ -1,320 +1,283 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import Appheader from '~/components/Appheader.vue'
-import { authClient } from '~/utils/auth-client'
+import { ref, computed } from 'vue'
 
-//Fetch the data from prisma 
-const { data } = await useFetch('/api/dashboard')
+interface DashMsg {
+  id: string
+  createdAt: string
+  phone: string
+  keywordDetected: string | null
+  messageText: string | null
+  direction: string | null
+  status: string | null
+}
 
-// Access the messages array and stats from the API response
-const messages = computed(() => data.value?.messages ?? [])
+const { data, error } = await useFetch('/api/dashboard')
+if (error.value) console.error('[dashboard fetch error]', error.value)
+
+const messages = computed(() => (data.value?.messages ?? []) as DashMsg[])
 const stats = computed(() => data.value?.stats)
 
 const search = ref('')
-
 const selectedKeywords = ref<string[]>([])
 const selectedTimeframe = ref<'ALL' | 'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH'>('ALL')
+const timeframeOpen = ref(false)
+
 const keywords = [
-  { label: 'HELP', color: '#3b82f6' },
-  { label: 'COPE', color: '#10b981' },
-  { label: 'EMERGENCY', color: '#ef4444' },
-  { label: 'CALM', color: '#eab308' }
+  { label: 'HELP',      color: '#0f766e', bg: 'rgba(15,118,110,0.12)',  border: '#6ee7b7' },
+  { label: 'COPE',      color: '#0f766e', bg: 'rgba(15,118,110,0.12)',  border: '#6ee7b7' },
+  { label: 'EMERGENCY', color: '#dc2626', bg: 'rgba(239,68,68,0.12)',   border: '#fca5a5' },
+  { label: 'CALM',      color: '#b45309', bg: 'rgba(245,158,11,0.12)',  border: '#fcd34d' },
 ]
 
-// Toggle a keyword in the selectedKeywords array when a badge is clicked
-const toggleKeyword = (keyword: string) => {
-  const index = selectedKeywords.value.indexOf(keyword)
-  if (index >= 0) {
-    selectedKeywords.value.splice(index, 1)
-  } else {
-    selectedKeywords.value.push(keyword)
-  }
+const statCards = computed(() => [
+  {
+    label: 'Messages Sent Today',
+    value: stats.value?.messagesToday ?? 0,
+    sub: stats.value?.percentChange != null
+      ? `${stats.value.percentChange >= 0 ? '+' : ''}${stats.value.percentChange}% vs yesterday`
+      : '+0% vs yesterday',
+    iconBg: '#dbeafe',
+    iconColor: '#2563eb',
+    icon: 'i-heroicons-chat-bubble-bottom-center-text-20-solid',
+  },
+  {
+    label: 'Active Keywords',
+    value: stats.value?.activeKeywords ?? 0,
+    sub: 'Configured triggers',
+    iconBg: '#fef3c7',
+    iconColor: '#d97706',
+    icon: 'i-heroicons-key-20-solid',
+  },
+  {
+    label: 'Active Workflows',
+    value: stats.value?.activeWorkflow ?? 0,
+    sub: 'Automated responses',
+    iconBg: '#ede9fe',
+    iconColor: '#7c3aed',
+    icon: 'i-heroicons-arrow-path-20-solid',
+  },
+  {
+    label: 'Active Caregivers',
+    value: stats.value?.activeCaregivers ?? 0,
+    sub: 'Enrolled in COPE',
+    iconBg: '#d1fae5',
+    iconColor: '#0f766e',
+    icon: 'i-heroicons-user-group-20-solid',
+  },
+])
+
+function toggleKeyword(kw: string) {
+  const i = selectedKeywords.value.indexOf(kw)
+  if (i >= 0) selectedKeywords.value.splice(i, 1)
+  else selectedKeywords.value.push(kw)
 }
 
-// Get the style for a keyword badge based on whether it's active or not
-const getKeywordBadgeStyle = (keyword?: string) => {
-  const found = keywords.find(k => k.label === (keyword ?? '').toUpperCase())
-  if (!found) return { backgroundColor: '#e5e7eb', color: '#111827' }
-  return { backgroundColor: found.color, color: '#ffffff' }
+function kwStyle(kw: string | null) {
+  const found = keywords.find(k => k.label === (kw ?? '').toUpperCase())
+  if (!found) return { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' }
+  return { bg: found.bg, color: found.color, border: found.border }
 }
 
-// Compute the start times for today, tomorrow, this week, and this month to use in filtering
-const todayStart = computed(() => {
-  const d = new Date(); d.setHours(0, 0, 0, 0); return d
-})
-const tomorrowStart = computed(() => {
-  const d = new Date(todayStart.value); d.setDate(d.getDate() + 1); return d
-})
-const weekStart = computed(() => {
-  const d = new Date(todayStart.value); d.setDate(d.getDate() - 6); return d
-})
-const monthStart = computed(() => {
-  const d = new Date(todayStart.value); d.setDate(1); return d
-})
+const todayStart = computed(() => { const d = new Date(); d.setHours(0,0,0,0); return d })
+const tomorrowStart = computed(() => { const d = new Date(todayStart.value); d.setDate(d.getDate()+1); return d })
+const weekStart = computed(() => { const d = new Date(todayStart.value); d.setDate(d.getDate()-6); return d })
+const monthStart = computed(() => { const d = new Date(todayStart.value); d.setDate(1); return d })
 
-// Filter messages based on selected keyword, timeframe, and search term
 const filteredMessages = computed(() => {
-  const timeFiltered = messages.value.filter(msg => {
-    const created = new Date(msg.createdAt)
+  const tf = messages.value.filter((msg: DashMsg) => {
+    const c = new Date(msg.createdAt)
     switch (selectedTimeframe.value) {
-      case 'TODAY':
-        return created >= todayStart.value && created < tomorrowStart.value
-      case 'YESTERDAY':
-        return created >= new Date(todayStart.value.getTime() - 86400000) && created < todayStart.value
-      case 'THIS_WEEK':
-        return created >= weekStart.value && created < tomorrowStart.value
-      case 'THIS_MONTH':
-        return created >= monthStart.value && created < tomorrowStart.value
-      case 'ALL':
-      default:
-        return true
+      case 'TODAY':     return c >= todayStart.value && c < tomorrowStart.value
+      case 'YESTERDAY': return c >= new Date(todayStart.value.getTime()-86400000) && c < todayStart.value
+      case 'THIS_WEEK': return c >= weekStart.value && c < tomorrowStart.value
+      case 'THIS_MONTH':return c >= monthStart.value && c < tomorrowStart.value
+      default:          return true
     }
   })
-
-  // Keyword filter - if any keywords are selected, filter by those
-  const keywordFiltered = selectedKeywords.value.length > 0
-    ? timeFiltered.filter(msg => selectedKeywords.value.includes(msg.keywordDetected?.toUpperCase() ?? ''))
-    : timeFiltered
-
-  if (!search.value || !search.value.trim()) {
-    return keywordFiltered
-  }
-
-  // Search section - filter by phone, message text, keyword, or status
+  const kf = selectedKeywords.value.length > 0
+    ? tf.filter((m: DashMsg) => selectedKeywords.value.includes((m.keywordDetected ?? '').toUpperCase()))
+    : tf
+  if (!search.value.trim()) return kf
   const term = search.value.trim().toLowerCase()
-  return keywordFiltered.filter(msg =>
-    String(msg.phone ?? '').toLowerCase().includes(term) ||
-    String(msg.messageText ?? '').toLowerCase().includes(term) ||
-    String(msg.keywordDetected ?? '').toLowerCase().includes(term) ||
-    String(msg.status ?? '').toLowerCase().includes(term)
+  return kf.filter((m: DashMsg) =>
+    String(m.phone ?? '').toLowerCase().includes(term) ||
+    String(m.messageText ?? '').toLowerCase().includes(term) ||
+    String(m.keywordDetected ?? '').toLowerCase().includes(term)
   )
 })
 
-//Dropdown options
-const filterOptions = [
-  [
-    { label: 'All Messages', onSelect: () => selectedTimeframe.value = 'ALL' },
-    { label: 'Today', onSelect: () => selectedTimeframe.value = 'TODAY' },
-    { label: 'Yesterday', onSelect: () => selectedTimeframe.value = 'YESTERDAY' },
-    { label: 'This Week', onSelect: () => selectedTimeframe.value = 'THIS_WEEK' },
-    { label: 'This Month', onSelect: () => selectedTimeframe.value = 'THIS_MONTH' }
-  ]
+const filterLabel = computed(() => ({
+  ALL: 'All Messages', TODAY: 'Today', YESTERDAY: 'Yesterday',
+  THIS_WEEK: 'This Week', THIS_MONTH: 'This Month'
+})[selectedTimeframe.value] ?? 'All Messages')
+
+const timeframeOptions = [
+  { label: 'All Messages', value: 'ALL' },
+  { label: 'Today',        value: 'TODAY' },
+  { label: 'Yesterday',    value: 'YESTERDAY' },
+  { label: 'This Week',    value: 'THIS_WEEK' },
+  { label: 'This Month',   value: 'THIS_MONTH' },
 ]
 
-// Compute the label for the dropdown based on selected timeframe
-const filterLabel = computed(() => {
-  const timeframeNameMap = {
-    ALL: 'All Messages',
-    TODAY: 'Today',
-    YESTERDAY: 'Yesterday',
-    THIS_WEEK: 'This Week',
-    THIS_MONTH: 'This Month'
-  }
-  return timeframeNameMap[selectedTimeframe.value] ?? 'All Messages'
-})
+function selectTimeframe(v: string) {
+  selectedTimeframe.value = v as any
+  timeframeOpen.value = false
+}
 
-// Handle the pages of the table, 4 messages per page
-const currentPage = ref(1)
-const pageSize = 4
-const totalPages = computed(() => Math.ceil(filteredMessages.value.length / pageSize))
-const pageMessages = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredMessages.value.slice(start, start + pageSize)
-})
+function statusStyle(status: string) {
+  const s = (status ?? '').toLowerCase()
+  if (s === 'delivered' || s === 'outbound') return { dot: '#16a34a', text: '#15803d', label: 'Delivered' }
+  if (s === 'failed')   return { dot: '#dc2626', text: '#b91c1c', label: 'Failed' }
+  if (s === 'inbound')  return { dot: '#f59e0b', text: '#b45309', label: 'Inbound' }
+  return { dot: '#f59e0b', text: '#b45309', label: 'Inbound' }
+}
 
-// Reset to first page when filters change
-watch([selectedKeywords, selectedTimeframe], () => { currentPage.value = 1 })
+watch([selectedKeywords, selectedTimeframe], () => {})
 </script>
 
 <template>
-  <UContainer class="py-8 space-y-6">
+  <div class="max-w-[1200px] mx-auto p-6 space-y-6">
 
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-4xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-        <p class="text-md text-gray-700 dark:text-gray-300 mt-1">Monitor your COPE text support system activity</p>
-      </div>
-  
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-      <!--Message Stats Card-->
-      <UCard class="bg-white border-2 border-black rounded-xl p-2 dark:bg-[#134e4a] dark:border-white">
-        <div class="flex justify-between mb-3">
-          <p class="text-1xl font-bold dark:text-white">Messages Sent Today</p>
-          <UIcon class="text-blue-400 dark:text-blue-300 w-6 h-6"  name="i-heroicons-chat-bubble-bottom-center-text-20-solid"></UIcon>
-        </div>
-        <p class="text-3xl font-bold dark:text-white">{{ stats?.messagesToday ?? 0 }}</p>
-      </UCard>
-      <!--Active Keywords Card-->
-      <UCard class="bg-white border-2 border-black rounded-xl p-2 dark:bg-[#134e4a] dark:border-white">
-        <div class="flex justify-between mb-3">
-          <p class="text-1xl font-bold dark:text-white">Active Keywords</p>
-          <UIcon class="text-yellow-400 dark:text-yellow-300 w-6 h-6" name="i-heroicons-key-20-solid"></UIcon>
-        </div>
-        <p class="text-3xl font-bold dark:text-white">{{ stats?.activeKeywords ?? 0 }}</p>
-        
-       
-      </UCard>
-      <!--Active Workflows Card-->
-      <UCard class="bg-white border-2 border-black rounded-xl p-2 dark:bg-[#134e4a] dark:border-white">
-        <div class="flex justify-between mb-3">
-          <p class="text-1xl font-bold dark:text-white">Active Workflows</p>
-          <UIcon class="text-purple-400 dark:text-purple-300 w-6 h-6" name="i-heroicons-inbox-stack-20-solid"></UIcon>
-        </div>
-        <p class="text-3xl font-bold dark:text-white">{{ stats?.activeWorkflow ?? 0 }}</p>
-       
-       
-      </UCard>
-      <!--Active Caregivers Card-->
-      <UCard class="bg-white border-2 border-black rounded-xl p-2 dark:bg-[#134e4a] dark:border-white">
-        <div class="flex justify-between mb-3">
-          <p class="text-1xl font-bold dark:text-white">Active Caregivers</p>
-          <UIcon class="w-6 h-6" name="i-heroicons-user-group-20-solid"></UIcon>
-        </div>
-        <p class="text-3xl font-bold dark:text-white">{{ stats?.activeCaregivers ?? 0 }}</p>
-        
-       
-      </UCard>
-    </div>
-
-    <!-- SMS Table -->
-    <UCard class="!bg-white border-2 border-black rounded-xl p-3 dark:!bg-[#134e4a] dark:border-white">
-    <template #header>
-      <div class="flex flex-wrap justify-between gap-6 mb-4">
-        <div class="flex-1 min-w-[280px]">
-          <h2 class="font-bold text-md dark:text-white">Recent SMS Activity</h2>
-          <p class="text-sm text-black-300 mt-0.5 dark:text-gray-300">Latest SMS interactions with caregivers</p>
-
-          <div class="[&_input::placeholder]:text-gray-400 mt-3 w-full md:w-1/2">
-            <UInput
-              v-model="search"
-              placeholder="Search messages or phone number..."
-              icon="i-heroicons-magnifying-glass-20-solid"
-              size="lg"
-              class="w-full rounded-xl shadow-sm"
-              :ui="{ base: '!bg-white dark:!bg-[#173933] !border-2 !border-black dark:!border-gray-600 !text-gray-800 dark:!text-white !py-2' }"
-            />
+    <!-- Stat Cards — 5 columns -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        v-for="card in statCards"
+        :key="card.label"
+        class="rounded-2xl border border-[#e7edf3] bg-white p-5 shadow-sm hover:shadow-md transition-shadow duration-200"
+      >
+        <!-- Label + Icon row -->
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-sm font-medium text-[#64748b] leading-snug">{{ card.label }}</p>
+          <div
+            class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
+            :style="`background:${card.iconBg};`"
+          >
+            <UIcon :name="card.icon" :style="`width:18px;height:18px;color:${card.iconColor};`" />
           </div>
         </div>
+        <!-- Value + trend -->
+        <div class="mt-4">
+          <p class="text-3xl font-bold text-[#102a43]">{{ card.value }}</p>
+          <p class="mt-1 text-xs text-[#94a3b8]">{{ card.sub }}</p>
+        </div>
+      </div>
+    </div>
 
-        <div class="flex-1 min-w-[260px] flex flex-col items-end gap-3">
-          <div class="flex flex-wrap justify-end gap-2">
+    <!-- Recent SMS Activity -->
+    <div class="rounded-2xl border border-[#e7edf3] bg-white shadow-sm overflow-hidden">
+
+      <!-- Section Header -->
+      <div class="px-6 pt-5 pb-4 border-b border-[#f1f5f9]">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-[#102a43]">Recent SMS Activity</h2>
+            <p class="mt-0.5 text-sm text-[#64748b]">Latest SMS interactions with caregivers</p>
+          </div>
+
+          <!-- Keyword filters + timeframe + total -->
+          <div class="flex flex-wrap items-center gap-2">
             <button
-              v-for="k in keywords"
-              :key="k.label"
-              type="button"
-              @click="toggleKeyword(k.label)"
-              :class="[
-                'keyword-btn',
-                selectedKeywords.includes(k.label) ? 'active' : ''
-              ]"
-              :style="{ '--keyword-color': k.color }"
-              aria-label="Toggle keyword {{ k.label }}"
-            >
-              {{ k.label }}
-            </button>
-          </div>
+              v-for="kw in keywords"
+              :key="kw.label"
+              class="rounded-full border px-3 py-1 text-xs font-semibold transition-all"
+              :style="selectedKeywords.includes(kw.label)
+                ? `background:${kw.bg};color:${kw.color};border-color:${kw.border};`
+                : 'background:#f8fbff;color:#64748b;border-color:#e7edf3;'"
+              @click="toggleKeyword(kw.label)"
+            >{{ kw.label }}</button>
 
-          <div class="flex items-center gap-2">
-            <UDropdownMenu :items="filterOptions">
-              <UButton
-                variant="outline"
-                color="primary"
-                size="sm"
-                icon="i-heroicons-adjustments-horizontal-20-solid"
-                :label="filterLabel"
-                trailing-icon="i-heroicons-chevron-down-20-solid"
-              />
-            </UDropdownMenu>
-            <UBadge variant="solid" color="primary">{{ filteredMessages.length }} Total</UBadge>
+            <!-- Timeframe dropdown -->
+            <div class="relative">
+              <button
+                class="flex items-center gap-1.5 rounded-full border border-[#e7edf3] bg-[#f8fbff] px-3 py-1 text-xs font-medium text-[#475569] hover:bg-[#f1f5f9] transition"
+                @click="timeframeOpen = !timeframeOpen"
+              >
+                <UIcon name="i-heroicons-adjustments-horizontal-20-solid" style="width:13px;height:13px;" />
+                {{ filterLabel }}
+                <UIcon name="i-heroicons-chevron-down-20-solid" style="width:12px;height:12px;" />
+              </button>
+              <div
+                v-if="timeframeOpen"
+                class="absolute right-0 z-50 mt-1 w-40 rounded-xl border border-[#e7edf3] bg-white shadow-lg overflow-hidden"
+              >
+                <button
+                  v-for="opt in timeframeOptions"
+                  :key="opt.value"
+                  class="flex w-full items-center px-4 py-2.5 text-xs text-[#475569] hover:bg-[#f8fbff] transition"
+                  :class="selectedTimeframe === opt.value ? 'font-semibold text-[#0f766e]' : ''"
+                  @click="selectTimeframe(opt.value)"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
+
+            <span class="rounded-full bg-[#0f766e] px-3 py-1 text-xs font-bold text-white">
+              {{ filteredMessages.length }} Total
+            </span>
           </div>
         </div>
+
+        <!-- Search -->
+        <div class="mt-4 flex h-10 max-w-xs items-center gap-2 rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3">
+          <UIcon name="i-heroicons-magnifying-glass-20-solid" style="width:15px;height:15px;color:#94a3b8;" />
+          <input
+            v-model="search"
+            placeholder="Search messages or phone number..."
+            class="w-full bg-transparent text-sm outline-none text-[#102a43]"
+          />
+        </div>
       </div>
-    </template>
-    <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b dark:border-white/20">
-          <th class="text-left py-3 px-3 text-md font-bold dark:text-gray-300">Date</th>
-          <th class="text-left py-3 px-3 text-md font-bold dark:text-gray-300">Time</th>
-          <th class="text-left py-3 px-3 text-md font-bold dark:text-gray-300">Phone Number</th>
-          <th class="text-left py-3 px-3 text-md font-bold dark:text-gray-300">Keyword</th>
-          <th class="text-left py-3 px-3 text-md font-bold dark:text-gray-300">Message Sent</th>
-          <th class="text-left py-3 px-3 text-md font-bold dark:text-gray-300">Status</th>
-        </tr>
-      </thead>
 
-      <tbody class="divide-y dark:divide-white/10">
-        <tr v-for="msg in pageMessages" :key="msg.id" class="hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
-
-          <td class="py-3 px-3 dark:text-gray-300">{{ new Date(msg.createdAt).toLocaleDateString() }}</td>
-          <td class="py-3 px-3 dark:text-gray-300">{{ new Date(msg.createdAt).toLocaleTimeString() }}</td>
-
-          <td class="py-3 px-3">
-            <div class="flex items-center gap-2">
-              <span class="dark:text-white">{{ msg.phone }}</span>
-            </div>
-          </td>
-
-          <td class="py-3 px-3">
-            <UBadge variant="solid" size="md" :style="getKeywordBadgeStyle(msg.keywordDetected?.toUpperCase())">
-                  {{ msg.keywordDetected ?? 'N/A' }}
-                </UBadge>
-          </td>
-
-      
-          <td class="py-3 px-3 dark:text-gray-300 max-w-[250px] truncate">{{ msg.messageText }}</td>
-          <td class="py-3 px-3">
-            <div class="flex items-center gap-1.5">
-              <UIcon
-                v-if="msg.status === 'delivered' || msg.status === 'DELIVERED'"
-                name="i-heroicons-check-circle-20-solid"
-                class="w-4 h-4 text-green-700 dark:text-green-500"
-              />
-              <UIcon
-                v-else
-                name="i-heroicons-clock-20-solid"
-                class="w-4 h-4 text-yellow-600 dark:text-yellow-400"
-              />
-              <span class="capitalize">{{ msg.status ?? 'PENDING' }}</span>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <!-- Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-[#f1f5f9] bg-[#f8fbff]">
+              <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Date</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Time</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Phone Number</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Keyword</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569]">Message Sent</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="filteredMessages.length === 0">
+              <td colspan="6" class="py-14 text-center text-sm text-[#94a3b8]">No messages found</td>
+            </tr>
+            <tr
+              v-for="msg in filteredMessages"
+              :key="msg.id"
+              class="border-t border-[#f1f5f9] hover:bg-[#f8fbff] transition duration-150"
+            >
+              <td class="px-5 py-3 text-xs text-[#64748b] whitespace-nowrap">
+                {{ new Date(msg.createdAt).toLocaleDateString() }}
+              </td>
+              <td class="px-5 py-3 text-xs text-[#64748b] whitespace-nowrap">
+                {{ new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+              </td>
+              <td class="px-5 py-3 text-sm font-medium text-[#102a43] whitespace-nowrap">{{ msg.phone }}</td>
+              <td class="px-5 py-3">
+                <span
+                  v-if="msg.keywordDetected"
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+                  :style="`background:${kwStyle(msg.keywordDetected).bg};color:${kwStyle(msg.keywordDetected).color};border-color:${kwStyle(msg.keywordDetected).border};`"
+                >{{ msg.keywordDetected.toUpperCase() }}</span>
+                <span v-else class="text-[#94a3b8]">—</span>
+              </td>
+              <td class="px-5 py-3 text-sm text-[#475569] max-w-[280px] truncate">
+                {{ msg.messageText || '—' }}
+              </td>
+              <td class="px-5 py-3 whitespace-nowrap">
+                <span class="inline-flex items-center gap-1.5 text-xs font-semibold" :style="`color:${statusStyle(msg.status ?? msg.direction ?? '').text};`">
+                  <span class="h-1.5 w-1.5 rounded-full flex-shrink-0" :style="`background:${statusStyle(msg.status ?? msg.direction ?? '').dot};`"></span>
+                  {{ statusStyle(msg.status ?? msg.direction ?? '').label }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div v-if="totalPages >= 1" class="flex flex-col items-center gap-2 mt-4">
-      <p class="text-sm text-gray-500 dark:text-gray-300">Page {{ currentPage }} of {{ totalPages }}</p>
-      <div class="flex justify-center items-center gap-2">
-        <UButton
-          icon="i-heroicons-chevron-left-20-solid"
-          variant="ghost"
-          color="primary"
-          :disabled="currentPage === 1"
-          @click="currentPage--"
-        />
-        <UButton
-          v-for="page in totalPages"
-          :key="page"
-          :label="String(page)"
-          size="sm"
-          :variant="currentPage === page ? 'solid' : 'ghost'"
-          color="primary"
-          @click="currentPage = page"
-        />
 
-      <UButton
-        icon="i-heroicons-chevron-right-20-solid"
-        variant="ghost"
-        color="primary"
-        size="sm"
-        :disabled="currentPage === totalPages"
-        @click="currentPage++"
-      />
-    </div>
   </div>
-  </UCard>
-  </UContainer>
 </template>
