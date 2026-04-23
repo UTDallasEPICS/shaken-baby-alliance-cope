@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import Appheader from '~/components/Appheader.vue'
+import SideBar from '~/components/SidebarNav.vue'
+
 const stats = [
   {
     title: 'Total Messages',
@@ -115,6 +119,8 @@ function statusBadgeColor(status: string) {
 </script>
 
 <template>
+  <Appheader />
+  <SideBar />
   <UContainer class="py-10 space-y-8">
     <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
       <div>

@@ -1,57 +1,25 @@
 <script setup lang="ts">
-const route = useRoute()
+  import { computed } from 'vue'
 
-const navGroups = [
-  {
-    label: 'OVERVIEW',
-    items: [
-      { label: 'Dashboard', to: '/dashboard', icon: 'i-heroicons-squares-2x2-20-solid' },
-    ],
-  },
-  {
-    label: 'MESSAGING',
-    items: [
-      { label: 'Messages',     to: '/messages',     icon: 'i-heroicons-chat-bubble-left-right-20-solid' },
-      { label: 'Message Logs', to: '/message-logs', icon: 'i-heroicons-chat-bubble-bottom-center-text-20-solid' },
-      { label: 'Templates',    to: '/templates',    icon: 'i-heroicons-document-text-20-solid' },
-    ],
-  },
-  {
-    label: 'AUTOMATION',
-    items: [
-      { label: 'Keywords',  to: '/keywords',  icon: 'i-heroicons-key-20-solid' },
-      { label: 'Workflows', to: '/workflows', icon: 'i-heroicons-arrow-path-20-solid' },
-      { label: 'Flows',     to: '/flows',     icon: 'i-heroicons-arrows-right-left-20-solid' },
-    ],
-  },
-  {
-    label: 'MANAGEMENT',
-    items: [
-      { label: 'Caregivers',  to: '/caregivers',  icon: 'i-heroicons-user-group-20-solid' },
-      { label: 'Emergency',   to: '/emergency',   icon: 'i-heroicons-exclamation-circle-20-solid' },
-      { label: 'Users',       to: '/users',       icon: 'i-heroicons-shield-check-20-solid' },
-      { label: 'Audit Logs',  to: '/audit-logs',  icon: 'i-heroicons-clipboard-document-list-20-solid' },
-    ],
-  },
-]
+  const route = useRoute()
 
-function isActive(to: string) {
-  return route.path === to || route.path.startsWith(to + '/')
-}
+  const navItems = computed(() => [
+    { label: 'Dashboard', to: '/dashboard', icon: 'i-heroicons-squares-2x2-20-solid' },
+    { label: 'Flows', to: '/flows', icon: 'i-heroicons-arrow-path-20-solid' },
+    { label: 'Templates', to: '/templates', icon: 'i-heroicons-document-text-20-solid' },
+    { label: 'Emergency', to: '/emergency', icon: 'i-heroicons-exclamation-circle-20-solid' },
+    { label: 'Caregivers', to: '/caregivers', icon: 'i-heroicons-user-group-20-solid' },
+    { label: 'Users', to: '/users', icon: 'i-heroicons-shield-check-20-solid' },
+    {
+      label: 'Audit Logs',
+      to: '/audit-logs',
+      icon: 'i-heroicons-clipboard-document-list-20-solid',
+    },
+  ])
 
-function onMouseEnter(e: MouseEvent, to: string) {
-  if (isActive(to)) return
-  const el = e.currentTarget as HTMLElement
-  el.style.backgroundColor = 'rgba(255,255,255,0.09)'
-  el.style.color = '#ffffff'
-}
-
-function onMouseLeave(e: MouseEvent, to: string) {
-  if (isActive(to)) return
-  const el = e.currentTarget as HTMLElement
-  el.style.backgroundColor = 'transparent'
-  el.style.color = 'rgba(203,213,225,1)'
-}
+  function isActive(to: string) {
+    return route.path === to || route.path.startsWith(`${to}/`)
+  }
 </script>
 
 <template>
@@ -59,32 +27,10 @@ function onMouseLeave(e: MouseEvent, to: string) {
     class="hidden lg:flex flex-col h-full"
     style="width: 256px; flex-shrink: 0; background: #1B3A5C;"
   >
-    <!-- Logo area -->
-    <div
-      style="
-        height: 72px;
-        display: flex;
-        align-items: center;
-        padding: 0 20px;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-        flex-shrink: 0;
-      "
-    >
-      <NuxtLink
-        to="/dashboard"
-        style="display: flex; align-items: center; gap: 10px; text-decoration: none;"
-      >
-        <div
-          style="
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: #C9A227;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-          "
+    <div class="flex h-30 items-center border-b border-gray-200 px-5 dark:border-gray-800">
+      <NuxtLink to="/" class="flex items-center gap-2">
+        <span class="text-[28px] leading-none font-bold text-gray-900 dark:text-white"
+          >COPE SMS Admin</span
         >
           <UIcon
             name="i-heroicons-shield-check-20-solid"

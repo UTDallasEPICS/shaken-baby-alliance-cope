@@ -21,7 +21,19 @@ const handleSubmit = async () => {
       errorMsg.value = 'Invalid email or password. Please try again.'
       return
     }
-    await navigateTo('/dashboard')
+    
+    console.log('Login successful!')
+    
+   
+    if ((data.user as any).role === 'admin') {
+      console.log('Welcome Admin! Routing to admin panel...')
+      router.push('/dashboard');
+      
+    } else {
+      console.log('Welcome User! Routing to standard dashboard...')
+      router.push('/dashboard');
+    }
+
   } catch (err) {
     errorMsg.value = 'An unexpected error occurred.'
   } finally {
@@ -72,16 +84,21 @@ const handleSubmit = async () => {
         </div>
       </div>
 
-      <p class="text-xs" style="color: rgba(255,255,255,0.3);">© 2026 Shaken Baby Alliance. All rights reserved.</p>
-    </div>
-
-    <!-- Right login card -->
-    <div class="flex flex-1 items-center justify-center p-6">
-      <div class="w-full max-w-md rounded-2xl p-8 shadow-2xl" style="background-color: #ffffff;">
-
-        <div class="flex items-center gap-3 mb-8 lg:hidden">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background-color: #C9A227;">
-            <UIcon name="i-heroicons-shield-check-20-solid" class="w-5 h-5 text-white" />
+      <form @submit.prevent="handleSubmit" class="space-y-5">
+        
+        <div class="space-y-1.5">
+          <label class="block text-xs font-semibold text-gray-700">Email</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <User class="h-4 w-4 text-blue-500" />
+            </div>
+            <input 
+              v-model="userId"
+              type="email" 
+              placeholder="Enter your email"
+              class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors placeholder:text-gray-400"
+              required
+            >
           </div>
           <span class="font-bold text-lg" style="color: #1B3A5C;">Shaken Baby Alliance</span>
         </div>
