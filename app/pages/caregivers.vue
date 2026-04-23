@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import Appheader from '~/components/Appheader.vue'
+import SideBar from '~/components/SidebarNav.vue'
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
@@ -232,247 +234,254 @@ function toggleEditKeyword(kw: string) {
 </script>
 
 <template>
-  <UContainer class="py-10">
-    <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Caregivers
-        </h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Manage caregiver contact information and interactions
-        </p>
-      </div>
-      <UButton
-        icon="i-heroicons-plus-20-solid"
-        label="Add Caregiver"
-        color="primary"
-        @click="showAddModal = true"
-      />
+  <div class="flex flex-col h-screen">
+    <Appheader />
+    <div class="flex flex-1 overflow-hidden">
+      <SideBar />
+      <main class="flex-1 overflow-y-auto">
+        <UContainer class="py-10">
+          <!-- Page Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                Caregivers
+              </h1>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Manage caregiver contact information and interactions
+              </p>
+            </div>
+            <UButton
+              icon="i-heroicons-plus-20-solid"
+              label="Add Caregiver"
+              color="primary"
+              @click="showAddModal = true"
+            />
+          </div>
+
+          <!-- Edit Caregiver Modal -->
+          <UModal v-model:open="showEditModal" title="Edit Caregiver" :ui="{ content: 'sm:max-w-xl' }">
+            <template #body>
+              <div v-if="editForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Full Name <span class="text-red-500">*</span>
+                  </label>
+                  <UInput v-model="editForm.name" placeholder="e.g. Sarah Johnson" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Number <span class="text-red-500">*</span>
+                  </label>
+                  <UInput v-model="editForm.phone" placeholder="(555) 123-4567" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email <span class="text-red-500">*</span>
+                  </label>
+                  <UInput v-model="editForm.email" type="email" placeholder="name@email.com" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                  <UInput v-model="editForm.address" placeholder="123 Main St" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City / State</label>
+                  <UInput v-model="editForm.cityState" placeholder="Boston, MA" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Contact</label>
+                  <UInput v-model="editForm.firstContact" type="date" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Interaction</label>
+                  <UInput v-model="editForm.lastInteraction" type="date" class="w-full" />
+                </div>
+
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Keywords Used</label>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="kw in availableKeywords"
+                      :key="kw"
+                      type="button"
+                      class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
+                      :class="editForm.keywords.includes(kw)
+                        ? 'bg-primary-500 border-primary-500 text-white'
+                        : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
+                      @click="toggleEditKeyword(kw)"
+                    >
+                      {{ kw }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                  <div class="flex gap-3">
+                    <button
+                      v-for="s in ['active', 'inactive']"
+                      :key="s"
+                      type="button"
+                      class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
+                      :class="editForm.status === s
+                        ? s === 'active'
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : 'bg-gray-400 border-gray-400 text-white'
+                        : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
+                      @click="editForm.status = s as 'active' | 'inactive'"
+                    >
+                      {{ s }}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </template>
+
+            <template #footer>
+              <div class="flex justify-end gap-2">
+                <UButton color="neutral" variant="outline" label="Cancel" @click="cancelEdit" />
+                <UButton
+                  color="primary"
+                  label="Save Changes"
+                  :disabled="!editForm || !editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()"
+                  @click="saveEdit"
+                />
+              </div>
+            </template>
+          </UModal>
+
+          <!-- Add Caregiver Modal -->
+          <UModal v-model:open="showAddModal" title="Add Caregiver" :ui="{ content: 'sm:max-w-xl' }">
+            <template #body>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-200">
+
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Full Name <span class="text-red-500">*</span>
+                  </label>
+                  <UInput v-model="form.name" placeholder="e.g. Sarah Johnson" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Number <span class="text-red-500">*</span>
+                  </label>
+                  <UInput v-model="form.phone" placeholder="(555) 123-4567" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email <span class="text-red-500">*</span>
+                  </label>
+                  <UInput v-model="form.email" type="email" placeholder="name@email.com" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                  <UInput v-model="form.address" placeholder="123 Main St" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City / State</label>
+                  <UInput v-model="form.cityState" placeholder="Boston, MA" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Contact</label>
+                  <UInput v-model="form.firstContact" type="date" class="w-full" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Interaction</label>
+                  <UInput v-model="form.lastInteraction" type="date" class="w-full" />
+                </div>
+
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Keywords Used</label>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="kw in availableKeywords"
+                      :key="kw"
+                      type="button"
+                      class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
+                      :class="form.keywords.includes(kw)
+                        ? 'bg-primary-500 border-primary-500 text-white'
+                        : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
+                      @click="toggleKeyword(kw)"
+                    >
+                      {{ kw }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                  <div class="flex gap-3">
+                    <button
+                      v-for="s in ['active', 'inactive']"
+                      :key="s"
+                      type="button"
+                      class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
+                      :class="form.status === s
+                        ? s === 'active'
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : 'bg-gray-400 border-gray-400 text-white'
+                        : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
+                      @click="form.status = s as 'active' | 'inactive'"
+                    >
+                      {{ s }}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </template>
+
+            <template #footer>
+              <div class="flex justify-end gap-2">
+                <UButton color="neutral" variant="outline" label="Cancel" @click="cancelAdd" />
+                <UButton
+                  color="primary"
+                  label="Save"
+                  :disabled="!form.name.trim() || !form.phone.trim() || !form.email.trim()"
+                  @click="saveCaregiver"
+                />
+              </div>
+            </template>
+          </UModal>
+
+          <!-- Table Card -->
+          <UCard class="w-full bg-white border-2 border-black rounded-xl p-2 dark:bg-[#134e4a] dark:border-white">
+            <template #header>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">Caregiver Directory</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {{ filteredData.length }} total caregivers
+                  </p>
+                </div>
+                <UInput
+                  v-model="searchQuery"
+                  icon="i-heroicons-magnifying-glass-20-solid"
+                  placeholder="Search caregivers..."
+                  size="sm"
+                  class="w-56"
+                />
+              </div>
+            </template>
+
+            <UTable :data="filteredData" :columns="columns" />
+          </UCard>
+        </UContainer>
+      </main>
     </div>
-
-    <!-- Edit Caregiver Modal -->
-    <UModal v-model:open="showEditModal" title="Edit Caregiver" :ui="{ content: 'sm:max-w-xl' }">
-      <template #body>
-        <div v-if="editForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Full Name <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="editForm.name" placeholder="e.g. Sarah Johnson" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Phone Number <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="editForm.phone" placeholder="(555) 123-4567" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="editForm.email" type="email" placeholder="name@email.com" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-            <UInput v-model="editForm.address" placeholder="123 Main St" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City / State</label>
-            <UInput v-model="editForm.cityState" placeholder="Boston, MA" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Contact</label>
-            <UInput v-model="editForm.firstContact" type="date" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Interaction</label>
-            <UInput v-model="editForm.lastInteraction" type="date" class="w-full" />
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Keywords Used</label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="kw in availableKeywords"
-                :key="kw"
-                type="button"
-                class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
-                :class="editForm.keywords.includes(kw)
-                  ? 'bg-primary-500 border-primary-500 text-white'
-                  : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
-                @click="toggleEditKeyword(kw)"
-              >
-                {{ kw }}
-              </button>
-            </div>
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-            <div class="flex gap-3">
-              <button
-                v-for="s in ['active', 'inactive']"
-                :key="s"
-                type="button"
-                class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
-                :class="editForm.status === s
-                  ? s === 'active'
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'bg-gray-400 border-gray-400 text-white'
-                  : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
-                @click="editForm.status = s as 'active' | 'inactive'"
-              >
-                {{ s }}
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </template>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="outline" label="Cancel" @click="cancelEdit" />
-          <UButton
-            color="primary"
-            label="Save Changes"
-            :disabled="!editForm || !editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()"
-            @click="saveEdit"
-          />
-        </div>
-      </template>
-    </UModal>
-
-    <!-- Add Caregiver Modal -->
-    <UModal v-model:open="showAddModal" title="Add Caregiver" :ui="{ content: 'sm:max-w-xl' }">
-      <template #body>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-200">
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Full Name <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="form.name" placeholder="e.g. Sarah Johnson" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Phone Number <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="form.phone" placeholder="(555) 123-4567" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email <span class="text-red-500">*</span>
-            </label>
-            <UInput v-model="form.email" type="email" placeholder="name@email.com" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-            <UInput v-model="form.address" placeholder="123 Main St" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City / State</label>
-            <UInput v-model="form.cityState" placeholder="Boston, MA" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Contact</label>
-            <UInput v-model="form.firstContact" type="date" class="w-full" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Interaction</label>
-            <UInput v-model="form.lastInteraction" type="date" class="w-full" />
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Keywords Used</label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="kw in availableKeywords"
-                :key="kw"
-                type="button"
-                class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
-                :class="form.keywords.includes(kw)
-                  ? 'bg-primary-500 border-primary-500 text-white'
-                  : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
-                @click="toggleKeyword(kw)"
-              >
-                {{ kw }}
-              </button>
-            </div>
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-            <div class="flex gap-3">
-              <button
-                v-for="s in ['active', 'inactive']"
-                :key="s"
-                type="button"
-                class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
-                :class="form.status === s
-                  ? s === 'active'
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'bg-gray-400 border-gray-400 text-white'
-                  : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'"
-                @click="form.status = s as 'active' | 'inactive'"
-              >
-                {{ s }}
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </template>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="outline" label="Cancel" @click="cancelAdd" />
-          <UButton
-            color="primary"
-            label="Save"
-            :disabled="!form.name.trim() || !form.phone.trim() || !form.email.trim()"
-            @click="saveCaregiver"
-          />
-        </div>
-      </template>
-    </UModal>
-
-    <!-- Table Card -->
-    <UCard class="w-full bg-white border-2 border-black rounded-xl p-2 dark:bg-[#134e4a] dark:border-white">
-      <template #header>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">Caregiver Directory</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {{ filteredData.length }} total caregivers
-            </p>
-          </div>
-          <UInput
-            v-model="searchQuery"
-            icon="i-heroicons-magnifying-glass-20-solid"
-            placeholder="Search caregivers..."
-            size="sm"
-            class="w-56"
-          />
-        </div>
-      </template>
-
-      <UTable :data="filteredData" :columns="columns" />
-    </UCard>
-  </UContainer>
-
+  </div>
 </template>
