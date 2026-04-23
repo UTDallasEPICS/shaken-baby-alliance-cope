@@ -116,4 +116,9 @@ const filteredUsers = computed(() =>
     </div>
   </UCard>
   </UContainer>
+navigateTo('/login')
+</script>
+
+<template>
+  <div></div>
 </template>
