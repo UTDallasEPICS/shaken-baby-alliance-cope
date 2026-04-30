@@ -17,7 +17,11 @@ import { username } from "better-auth/plugins";
 export const auth = betterAuth({
 	secret: process.env.BETTER_AUTH_SECRET,
 	baseURL: process.env.BETTER_AUTH_URL,
-	trustedOrigins: ["http://localhost:3000", "http://localhost:3005"],
+	trustedOrigins: [
+		"http://localhost:3000",
+		"http://localhost:3005",
+		...(process.env.APP_URL ? [process.env.APP_URL] : []),
+	],
 	database: prismaAdapter(prisma, {
 		provider: "sqlite",
 	}),

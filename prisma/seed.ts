@@ -257,7 +257,9 @@ function stepText(stepId: string, locale: LocaleKey) {
 async function main() {
   console.log('Resetting and seeding database...')
 
-  const passwordHash = await hashPassword('password123')
+  const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@gmail.com'
+  const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin@123'
+  const passwordHash = await hashPassword(adminPassword)
 
   await prisma.$transaction([
     prisma.aiResponseLog.deleteMany(),
@@ -278,12 +280,7 @@ async function main() {
   ])
 
   const users = [
-    { id: 'user_admin_1', name: 'Alice Admin', email: 'alice@cope.local', role: 'admin', username: 'alice', displayUsername: 'Alice' },
-    { id: 'user_admin_2', name: 'Marcus Admin', email: 'marcus@cope.local', role: 'admin', username: 'marcus', displayUsername: 'Marcus' },
-    { id: 'user_staff_1', name: 'Rosa Coordinator', email: 'rosa@cope.local', role: 'user', username: 'rosa', displayUsername: 'Rosa' },
-    { id: 'user_staff_2', name: 'Daniel Support', email: 'daniel@cope.local', role: 'user', username: 'daniel', displayUsername: 'Daniel' },
-    { id: 'user_staff_3', name: 'Maria Outreach', email: 'maria@cope.local', role: 'user', username: 'maria', displayUsername: 'Maria' },
-    { id: 'user_staff_4', name: 'Jordan Caseworker', email: 'jordan@cope.local', role: 'user', username: 'jordan', displayUsername: 'Jordan' },
+    { id: 'user_admin_1', name: 'Admin', email: adminEmail, role: 'admin', username: 'admin', displayUsername: 'Admin' },
   ]
 
   await prisma.user.createMany({
@@ -917,7 +914,7 @@ async function main() {
   console.log(`AI Knowledge Entries: ${allAiKnowledgeEntries.length}`)
   console.log(`Messages: ${messages.length}`)
   console.log(`Message Logs: ${messageLogs.length}`)
-  console.log('Login password for seeded users: password123')
+  console.log(`Admin login: ${adminEmail} / (from ADMIN_PASSWORD env var)`)
 }
 
 main()

@@ -19,13 +19,13 @@ function formatDate(d: string | Date | undefined) {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto p-6 space-y-6">
+  <div class="max-w-3xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
     <div>
       <h1 class="text-3xl font-semibold tracking-tight text-[#102a43]">Profile Settings</h1>
       <p class="mt-2 text-base text-[#64748b]">Your account information</p>
     </div>
 
-    <div class="rounded-[32px] border border-[#e7edf3] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-8">
+    <div class="rounded-[32px] border border-[#e7edf3] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-5 sm:p-8">
       <div class="flex items-center gap-5 pb-6 border-b border-[#e7edf3]">
         <div
           class="flex items-center justify-center rounded-full text-white font-bold text-2xl flex-shrink-0"

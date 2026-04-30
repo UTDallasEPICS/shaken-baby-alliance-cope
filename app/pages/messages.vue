@@ -35,6 +35,7 @@ const search = ref('')
 const chatViewport = ref<HTMLElement | null>(null)
 const conversationViewport = ref<HTMLElement | null>(null)
 const preservedConversationScrollTop = ref(0)
+const mobilePanel = ref<'list' | 'chat'>('list')
 
 const { data, pending } = await useFetch<{
   conversations: ConversationSummary[]
@@ -127,6 +128,11 @@ function selectConversation(phone: string) {
     preservedConversationScrollTop.value = conversationViewport.value.scrollTop
   }
   selectedPhone.value = phone
+  mobilePanel.value = 'chat'
+}
+
+function backToList() {
+  mobilePanel.value = 'list'
 }
 
 watch(
@@ -165,7 +171,7 @@ watch(
 <template>
   <div class="messages-page">
     <div class="messages-shell">
-      <section class="conversation-panel card-panel">
+      <section class="conversation-panel card-panel" :class="{ 'mob-hidden': mobilePanel === 'chat' }">
         <div class="panel-header">
           <h2>Conversations</h2>
 
@@ -216,8 +222,13 @@ watch(
         </div>
       </section>
 
-      <section class="thread-panel card-panel">
+      <section class="thread-panel card-panel" :class="{ 'mob-hidden': mobilePanel === 'list' }">
         <div class="thread-header">
+          <!-- Mobile back button -->
+          <button class="mob-back-btn" @click="backToList">
+            <UIcon name="i-heroicons-arrow-left-20-solid" style="width:18px;height:18px;" />
+            <span>Conversations</span>
+          </button>
           <template v-if="activeConversation">
             <h2>{{ activeConversation.contactName || 'Unknown Sender' }}</h2>
             <p class="thread-phone">{{ activeConversation.phone }}</p>
@@ -581,6 +592,10 @@ watch(
   }
 }
 
+.mob-back-btn {
+  display: none;
+}
+
 @media (max-width: 1024px) {
   .messages-page {
     height: auto;
@@ -598,17 +613,64 @@ watch(
   }
 }
 
+@media (max-width: 768px) {
+  .messages-page {
+    height: calc(100vh - 90px);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .messages-shell {
+    grid-template-columns: 1fr;
+    gap: 0;
+    height: 100%;
+  }
+
+  .card-panel {
+    height: 100%;
+    border-radius: 18px;
+  }
+
+  .mob-hidden {
+    display: none !important;
+  }
+
+  .mob-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 6px 10px 6px 6px;
+    border: 1px solid #e7edf3;
+    border-radius: 10px;
+    background: #f8fbff;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    width: fit-content;
+  }
+
+  .mob-back-btn:hover {
+    background: #f1f5f9;
+  }
+
+  .thread-body {
+    min-height: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .panel-header,
   .thread-header {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .conversation-list,
   .thread-body {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .message-bubble {

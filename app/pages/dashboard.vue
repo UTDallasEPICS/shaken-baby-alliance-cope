@@ -136,7 +136,7 @@ watch([selectedKeywords, selectedTimeframe], () => {})
 </script>
 
 <template>
-  <div class="max-w-[1200px] mx-auto p-6 space-y-6">
+  <div class="max-w-[1200px] mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
 
     <!-- Stat Cards — 5 columns -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -167,7 +167,7 @@ watch([selectedKeywords, selectedTimeframe], () => {})
     <div class="rounded-2xl border border-[#e7edf3] bg-white shadow-sm overflow-hidden">
 
       <!-- Section Header -->
-      <div class="px-6 pt-5 pb-4 border-b border-[#f1f5f9]">
+      <div class="px-4 sm:px-6 pt-4 sm:pt-5 pb-4 border-b border-[#f1f5f9]">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 class="text-lg font-bold text-[#102a43]">Recent SMS Activity</h2>
@@ -175,7 +175,7 @@ watch([selectedKeywords, selectedTimeframe], () => {})
           </div>
 
           <!-- Keyword filters + timeframe + total -->
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
             <button
               v-for="kw in keywords"
               :key="kw.label"
@@ -217,7 +217,7 @@ watch([selectedKeywords, selectedTimeframe], () => {})
         </div>
 
         <!-- Search -->
-        <div class="mt-4 flex h-10 max-w-xs items-center gap-2 rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3">
+        <div class="mt-4 flex h-10 w-full sm:max-w-xs items-center gap-2 rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3">
           <UIcon name="i-heroicons-magnifying-glass-20-solid" style="width:15px;height:15px;color:#94a3b8;" />
           <input
             v-model="search"

@@ -200,7 +200,7 @@ async function saveEdit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1320px] space-y-8">
+  <div class="mx-auto max-w-[1320px] space-y-5 sm:space-y-8">
     <div v-if="pending" class="rounded-[30px] border border-[#e7edf3] bg-white p-8 text-sm text-[#64748b] shadow-sm">
       Loading caregiver profile...
     </div>
@@ -229,8 +229,8 @@ async function saveEdit() {
         </button>
       </div>
 
-      <div class="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <section class="rounded-[28px] border border-[#e7edf3] bg-white p-7 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
+      <div class="grid gap-4 sm:gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <section class="rounded-[28px] border border-[#e7edf3] bg-white p-4 sm:p-7 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
           <p class="text-[18px] font-semibold text-[#102a43]">Basic Information</p>
 
           <div class="mt-8">
@@ -266,7 +266,7 @@ async function saveEdit() {
           </div>
         </section>
 
-        <section class="rounded-[28px] border border-[#e7edf3] bg-white p-7 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
+        <section class="rounded-[28px] border border-[#e7edf3] bg-white p-4 sm:p-7 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
           <p class="text-[18px] font-semibold text-[#102a43]">Interaction Summary</p>
 
           <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -316,7 +316,7 @@ async function saveEdit() {
         </section>
       </div>
 
-      <section class="rounded-[28px] border border-[#e7edf3] bg-white p-7 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
+      <section class="rounded-[28px] border border-[#e7edf3] bg-white p-4 sm:p-7 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
         <h2 class="text-[18px] font-semibold text-[#102a43]">SMS Conversation History</h2>
         <p class="mt-1 text-base text-[#64748b]">Recent message exchanges with the system</p>
 
@@ -343,7 +343,7 @@ async function saveEdit() {
         </div>
       </section>
 
-      <section class="rounded-[28px] border border-[#e7edf3] bg-white p-7 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
+      <section class="rounded-[28px] border border-[#e7edf3] bg-white p-4 sm:p-7 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
         <h2 class="text-[18px] font-semibold text-[#102a43]">Admin Notes</h2>
         <p class="mt-1 text-base text-[#64748b]">Internal notes and observations</p>
 

@@ -23,6 +23,8 @@ const globalSearch = ref('')
 const dropdownOpen = ref(false)
 const dropdownContainer = ref<HTMLElement | null>(null)
 
+const { toggle: toggleMobileNav } = useMobileNav()
+
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value
 }
@@ -54,6 +56,16 @@ function goToProfile() {
 
 <template>
   <header class="topbar">
+    <!-- Hamburger — mobile only -->
+    <button
+      class="hamburger lg:hidden"
+      type="button"
+      aria-label="Open navigation menu"
+      @click="toggleMobileNav"
+    >
+      <UIcon name="i-heroicons-bars-3-20-solid" style="width:22px;height:22px;" />
+    </button>
+
     <div class="topbar-search-shell">
       <div class="topbar-search">
         <UIcon name="i-heroicons-magnifying-glass-20-solid" class="topbar-search-icon" />
@@ -103,12 +115,30 @@ function goToProfile() {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 76px;
-  padding: 14px 30px;
+  gap: 12px;
+  min-height: 68px;
+  padding: 10px 16px;
   border-bottom: 1px solid #dfe7f0;
   background: #ffffff;
+}
+
+.hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e7edf3;
+  border-radius: 12px;
+  background: transparent;
+  color: #102a43;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.hamburger:hover {
+  background: #f1f5f9;
 }
 
 .topbar-search-shell {
@@ -120,31 +150,30 @@ function goToProfile() {
   position: relative;
   display: flex;
   align-items: center;
-  height: 50px;
+  height: 44px;
   border: 1px solid #d6e0eb;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
 .topbar-search-icon {
   position: absolute;
-  left: 18px;
-  width: 20px;
-  height: 20px;
+  left: 14px;
+  width: 18px;
+  height: 18px;
   color: #7e90a6;
 }
 
 .topbar-search-input {
   width: 100%;
   height: 100%;
-  padding: 0 18px 0 52px;
+  padding: 0 14px 0 44px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 16px;
   background: transparent;
   outline: 0;
   color: #102a43;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .topbar-search-input::placeholder {
@@ -154,7 +183,8 @@ function goToProfile() {
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .bell-button {
@@ -162,12 +192,13 @@ function goToProfile() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 12px;
   background: transparent;
   color: #102a43;
+  cursor: pointer;
 }
 
 .bell-icon {
@@ -178,9 +209,9 @@ function goToProfile() {
 .bell-dot {
   position: absolute;
   top: 8px;
-  right: 10px;
-  width: 10px;
-  height: 10px;
+  right: 9px;
+  width: 9px;
+  height: 9px;
   border: 2px solid #ffffff;
   border-radius: 999px;
   background: #ef4444;
@@ -193,64 +224,69 @@ function goToProfile() {
 .profile-button {
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 54px;
-  padding: 0 14px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 10px;
   border: 0;
   background: transparent;
+  cursor: pointer;
 }
 
 .profile-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   background: linear-gradient(145deg, #23a39c, #1c8f87);
   color: #ffffff;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .profile-copy p {
   margin: 0;
   color: #102a43;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.1;
   font-weight: 600;
   text-align: left;
+  white-space: nowrap;
 }
 
 .profile-copy span {
   display: block;
-  margin-top: 4px;
+  margin-top: 3px;
   color: #6b7c93;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.1;
   text-align: left;
+  white-space: nowrap;
 }
 
 .profile-chevron {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   color: #6b7c93;
 }
 
 .profile-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 10px);
-  min-width: 220px;
+  top: calc(100% + 8px);
+  min-width: 200px;
   overflow: hidden;
   border: 1px solid #dfe7f0;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+  z-index: 100;
 }
 
 .profile-menu-heading {
-  padding: 14px 16px 10px;
+  padding: 12px 16px 8px;
   color: #90a1b5;
   font-size: 11px;
   line-height: 1;
@@ -264,12 +300,13 @@ function goToProfile() {
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 12px 16px;
+  padding: 11px 16px;
   border: 0;
   background: #ffffff;
   color: #334155;
   font-size: 14px;
   text-align: left;
+  cursor: pointer;
 }
 
 .profile-menu-item:hover {
@@ -285,35 +322,25 @@ function goToProfile() {
   height: 16px;
 }
 
-.drop-enter-active {
-  transition: all 0.15s ease;
-}
-
-.drop-leave-active {
-  transition: all 0.1s ease;
-}
-
-.drop-enter-from {
-  opacity: 0;
-  transform: translateY(-6px) scale(0.97);
-}
-
-.drop-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-@media (max-width: 900px) {
-  .topbar {
-    padding: 12px 18px;
+/* Hide profile text on small screens */
+@media (max-width: 640px) {
+  .topbar-search-input::placeholder {
+    font-size: 13px;
   }
-
-  .topbar-search-shell {
-    max-width: none;
-  }
-
   .profile-copy {
     display: none;
   }
+  .profile-chevron {
+    display: none;
+  }
+  .topbar {
+    gap: 8px;
+    padding: 8px 12px;
+  }
 }
+
+.drop-enter-active { transition: all 0.15s ease; }
+.drop-leave-active { transition: all 0.1s ease; }
+.drop-enter-from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+.drop-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>

@@ -109,7 +109,7 @@ function toggleKeyword(kw: string) {
 }
 
 async function saveCaregiver() {
-  if (!form.value.name.trim() || !form.value.phone.trim() || !form.value.email.trim()) return
+  if (!form.value.name.trim() || !form.value.phone.trim()) return
   const { city, state } = parseCityState(form.value.cityState)
   const created = await $fetch<{ caregiver: any }>('/api/caregivers', {
     method: 'POST',
@@ -140,13 +140,6 @@ function toggleEditKeyword(kw: string) {
 
 async function saveEdit() {
   if (!editForm.value) return
-  const ok = await confirm(
-    `Save changes to ${editForm.value.name}?`,
-    'Confirm Changes',
-    'Save Changes',
-    false
-  )
-  if (!ok) return
   const { city, state } = parseCityState(editForm.value.cityState)
   const response = await $fetch<{ caregiver: any }>('/api/caregivers', {
     method: 'PUT',
@@ -308,7 +301,7 @@ async function exportCaregiversPDF() {
 </script>
 
 <template>
-  <div class="max-w-[1400px] mx-auto p-6 space-y-6">
+  <div class="max-w-[1400px] mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
 
     <div class="mx-auto grid max-w-[1240px] grid-cols-1 gap-4 xl:grid-cols-[0.9fr_0.95fr_0.85fr]">
       <button
@@ -414,7 +407,7 @@ async function exportCaregiversPDF() {
               <UInput v-model="form.phone" placeholder="+1 (555) 123-4567" class="w-full" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Email <span class="text-red-500">*</span></label>
+              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Email</label>
               <UInput v-model="form.email" type="email" placeholder="name@email.com" class="w-full" />
             </div>
             <div>
@@ -466,7 +459,7 @@ async function exportCaregiversPDF() {
             <button
               class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed"
               style="background:#c9a227;"
-              :disabled="!form.name.trim() || !form.phone.trim() || !form.email.trim()"
+              :disabled="!form.name.trim() || !form.phone.trim()"
               @click="saveCaregiver"
             >
               <UIcon name="i-heroicons-plus-20-solid" style="width:14px;height:14px;display:inline;margin-right:4px;" />
@@ -542,9 +535,9 @@ async function exportCaregiversPDF() {
       </Transition>
     </div>
 
-    <div class="rounded-[32px] border border-[#e7edf3] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] overflow-hidden">
+    <div class="rounded-[32px] border border-[#e7edf3] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
 
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-7 py-5 border-b border-[#f1f5f9]">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-7 py-4 sm:py-5 border-b border-[#f1f5f9]">
         <div>
           <p class="text-base font-semibold text-[#102a43]">Caregiver Directory</p>
           <p class="text-sm text-[#64748b] mt-0.5">{{ filteredActive.length }} total caregivers</p>
@@ -564,7 +557,7 @@ async function exportCaregiversPDF() {
         </div>
       </div>
 
-      <div class="overflow-hidden">
+      <div class="overflow-x-auto">
         <table class="caregivers-table w-full table-fixed text-sm border-collapse">
           <colgroup>
             <col class="w-[12%]">
@@ -722,79 +715,106 @@ async function exportCaregiversPDF() {
     </div>
 
     <!-- ── Edit Modal ─────────────────────────────────────────────────────── -->
-    <UModal v-model:open="showEditModal" title="Edit Caregiver" :ui="{ content: 'sm:max-w-xl' }">
-      <template #body>
-        <div v-if="editForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-[#475569] mb-1">Full Name <span class="text-red-500">*</span></label>
-            <UInput v-model="editForm.name" placeholder="e.g. Sarah Johnson" class="w-full" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-[#475569] mb-1">Phone Number <span class="text-red-500">*</span></label>
-            <UInput v-model="editForm.phone" placeholder="(555) 123-4567" class="w-full" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-[#475569] mb-1">Email <span class="text-red-500">*</span></label>
-            <UInput v-model="editForm.email" type="email" placeholder="name@email.com" class="w-full" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-[#475569] mb-1">Address</label>
-            <UInput v-model="editForm.address" placeholder="123 Main St" class="w-full" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-[#475569] mb-1">City / State</label>
-            <UInput v-model="editForm.cityState" placeholder="Dallas, TX" class="w-full" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-[#475569] mb-1">First Contact</label>
-            <UInput v-model="editForm.firstContact" type="date" class="w-full" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-[#475569] mb-1">Last Interaction</label>
-            <UInput v-model="editForm.lastInteraction" type="date" class="w-full" />
-          </div>
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-[#475569] mb-2">Keywords Used</label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="kw in availableKeywords"
-                :key="kw"
-                type="button"
-                class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
-                :class="editForm.keywords.includes(kw) ? 'bg-[#0f766e] border-[#0f766e] text-white' : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#0f766e] hover:text-[#0f766e]'"
-                @click="toggleEditKeyword(kw)"
-              >{{ kw }}</button>
+    <Teleport to="body">
+      <Transition name="overlay">
+        <div
+          v-if="showEditModal && editForm"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style="background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);"
+          @click.self="cancelEdit"
+        >
+          <Transition name="dialog">
+            <div
+              v-if="showEditModal"
+              class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto"
+            >
+              <!-- Header -->
+              <div class="flex items-center justify-between px-6 py-4 border-b border-[#f1f5f9]">
+                <div class="flex items-center gap-3">
+                  <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#f0fdf4]">
+                    <UIcon name="i-heroicons-pencil-square-20-solid" style="width:16px;height:16px;color:#0f766e;" />
+                  </div>
+                  <h3 class="text-base font-bold text-[#102a43]">Edit Caregiver</h3>
+                </div>
+                <button class="flex h-8 w-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#f1f5f9] transition" @click="cancelEdit">
+                  <UIcon name="i-heroicons-x-mark-20-solid" style="width:16px;height:16px;" />
+                </button>
+              </div>
+
+              <!-- Body -->
+              <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Full Name <span class="text-red-500">*</span></label>
+                  <input v-model="editForm.name" placeholder="e.g. Sarah Johnson" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Phone Number <span class="text-red-500">*</span></label>
+                  <input v-model="editForm.phone" placeholder="(555) 123-4567" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Email</label>
+                  <input v-model="editForm.email" type="email" placeholder="name@email.com" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Address</label>
+                  <input v-model="editForm.address" placeholder="123 Main St" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">City / State</label>
+                  <input v-model="editForm.cityState" placeholder="Dallas, TX" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">First Contact</label>
+                  <input v-model="editForm.firstContact" type="date" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Last Interaction</label>
+                  <input v-model="editForm.lastInteraction" type="date" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-2">Keywords</label>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="kw in availableKeywords" :key="kw" type="button"
+                      class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
+                      :class="editForm.keywords.includes(kw) ? 'bg-[#0f766e] border-[#0f766e] text-white' : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#0f766e] hover:text-[#0f766e]'"
+                      @click="toggleEditKeyword(kw)"
+                    >{{ kw }}</button>
+                  </div>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-2">Status</label>
+                  <div class="flex gap-2">
+                    <button
+                      v-for="s in ['active', 'inactive']" :key="s" type="button"
+                      class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
+                      :class="editForm.status === s
+                        ? s === 'active' ? 'bg-green-500 border-green-500 text-white' : 'bg-slate-400 border-slate-400 text-white'
+                        : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#94a3b8]'"
+                      @click="editForm!.status = s as 'active' | 'inactive'"
+                    >{{ s }}</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="flex justify-end gap-3 px-6 py-4 border-t border-[#f1f5f9]">
+                <button
+                  class="px-5 py-2 rounded-xl text-sm font-semibold border border-[#e7edf3] text-[#475569] hover:bg-[#f1f5f9] transition"
+                  @click="cancelEdit"
+                >Cancel</button>
+                <button
+                  class="px-5 py-2 rounded-xl text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style="background:#0f766e;"
+                  :disabled="!editForm.name.trim() || !editForm.phone.trim()"
+                  @click="saveEdit"
+                >Save Changes</button>
+              </div>
             </div>
-          </div>
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-[#475569] mb-2">Status</label>
-            <div class="flex gap-3">
-              <button
-                v-for="s in ['active', 'inactive']"
-                :key="s"
-                type="button"
-                class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
-                :class="editForm.status === s
-                  ? s === 'active' ? 'bg-green-500 border-green-500 text-white' : 'bg-slate-400 border-slate-400 text-white'
-                  : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#94a3b8]'"
-                @click="editForm!.status = s as 'active' | 'inactive'"
-              >{{ s }}</button>
-            </div>
-          </div>
+          </Transition>
         </div>
-      </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="outline" label="Cancel" @click="cancelEdit" />
-          <UButton
-            color="primary"
-            label="Save Changes"
-            :disabled="!editForm || !editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()"
-            @click="saveEdit"
-          />
-        </div>
-      </template>
-    </UModal>
+      </Transition>
+    </Teleport>
 
   </div>
 </template>

@@ -1,0 +1,13 @@
+.git
+.gitignore
+.nuxt
+.output
+.temp
+.cache
+node_modules
+dev.db
+*.db
+.env
+.env.*
+build.log
+README.md

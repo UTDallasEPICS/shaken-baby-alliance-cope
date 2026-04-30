@@ -19,7 +19,7 @@ const isMessagesPage = computed(() => route.path === '/messages')
       <main
         class="flex-1 min-w-0"
         :class="[
-          workflowMaximized ? 'p-0' : 'p-6 sm:p-8',
+          workflowMaximized ? 'p-0' : 'p-3 sm:p-5',
           isMessagesPage ? 'overflow-hidden' : 'overflow-y-auto',
         ]"
         style="background: #ffffff !important;"

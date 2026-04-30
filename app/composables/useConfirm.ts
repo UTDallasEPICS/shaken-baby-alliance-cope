@@ -1,24 +1,22 @@
-import { ref } from 'vue'
-
 interface ConfirmState {
   open: boolean
   title: string
   message: string
   confirmLabel: string
   danger: boolean
-  resolve: ((v: boolean) => void) | null
 }
 
-const state = ref<ConfirmState>({
-  open: false,
-  title: 'Are you sure?',
-  message: '',
-  confirmLabel: 'Confirm',
-  danger: false,
-  resolve: null
-})
+let _resolve: ((v: boolean) => void) | null = null
 
 export function useConfirm() {
+  const state = useState<ConfirmState>('confirm-dialog', () => ({
+    open: false,
+    title: 'Are you sure?',
+    message: '',
+    confirmLabel: 'Confirm',
+    danger: false,
+  }))
+
   function confirm(
     message: string,
     title = 'Are you sure?',
@@ -26,17 +24,20 @@ export function useConfirm() {
     danger = true
   ): Promise<boolean> {
     return new Promise(resolve => {
-      state.value = { open: true, title, message, confirmLabel, danger, resolve }
+      _resolve = resolve
+      state.value = { open: true, title, message, confirmLabel, danger }
     })
   }
 
   function accept() {
-    state.value.resolve?.(true)
+    _resolve?.(true)
+    _resolve = null
     state.value.open = false
   }
 
   function cancel() {
-    state.value.resolve?.(false)
+    _resolve?.(false)
+    _resolve = null
     state.value.open = false
   }
 
