@@ -1,4 +1,4 @@
-import { buildGroundedFallback, detectEmergency, retrieveAiKnowledge } from '../utils/ai-retrieval'
+import { buildGroundedFallback, detectEmergency, retrieveAiKnowledge } from '../../utils/ai-retrieval'
 import { generateGeminiEmbedding, generateGroundedGeminiResponse } from '../utils/ai'
 
 function isGreeting(value: string) {

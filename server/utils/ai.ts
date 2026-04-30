@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import type { RetrievedKnowledge } from './ai-retrieval'
+import type { RetrievedKnowledge } from '../../utils/ai-retrieval'
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
