@@ -1,16 +1,31 @@
-FROM node:22-alpine
-WORKDIR /app
+# Build container
+FROM node:current-alpine AS builder
+COPY . ./
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN npm i -g pnpm
 
-COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
-
-COPY . .
-RUN npx prisma generate
+RUN pnpm i --frozen-lockfile --shamefully-hoist
+RUN pnpm prisma generate
 RUN pnpm run build
 
+# Deployment container
+FROM node:current-alpine AS deployment
+
+# Copy stuff from build container to ensure we have prisma and everything it needs
+COPY --from=builder /.output /
+COPY --from=builder /package.json /
+COPY --from=builder /pnpm-lock.yaml /
+COPY --from=builder /prisma.config.ts /
+COPY --from=builder /prisma /prisma
+COPY --from=builder /node_modules /node_modules
+
+RUN npm i -g pnpm
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Esnure we can actually run the entrypoint script
+RUN chmod +x /entrypoint.sh
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node .output/server/index.mjs"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "./server/index.mjs"]

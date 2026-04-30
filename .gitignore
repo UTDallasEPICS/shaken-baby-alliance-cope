@@ -31,5 +31,4 @@ coverage
 !.env.example
 
 /prisma/generated
-/prisma/migrations
 /dev.db
