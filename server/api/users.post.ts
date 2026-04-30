@@ -1,4 +1,4 @@
-import { prisma } from '../utils/prisma'
+import { prisma } from '../../utils/prisma'
 import { randomBytes, scrypt } from 'node:crypto'
 import { promisify } from 'node:util'
 

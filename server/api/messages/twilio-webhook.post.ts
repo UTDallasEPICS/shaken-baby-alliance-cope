@@ -1,4 +1,4 @@
-import { prisma } from '../../utils/prisma'
+import { prisma } from '../../../utils/prisma'
 import { processInboundMessage } from '../../utils/message-runtime'
 import { sendSms } from '../../utils/twilio'
 

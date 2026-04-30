@@ -1,5 +1,5 @@
 import twilio from 'twilio'
-import { prisma } from './prisma'
+import { prisma } from '../../utils/prisma'
 
 async function getTwilioConfig() {
   const settings = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } })

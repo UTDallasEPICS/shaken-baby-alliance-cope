@@ -1,4 +1,4 @@
-import { prisma } from '../utils/prisma'
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async () => {
   let settings = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } })

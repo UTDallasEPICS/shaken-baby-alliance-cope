@@ -1,4 +1,4 @@
-import { reindexAllAiKnowledge } from '../utils/ai-retrieval'
+import { reindexAllAiKnowledge } from '../../utils/ai-retrieval'
 import { embedAllKnowledgeChunks } from '../utils/ai'
 
 export default defineEventHandler(async (event) => {

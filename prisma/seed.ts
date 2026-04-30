@@ -1,7 +1,8 @@
 import 'dotenv/config'
-import { prisma } from '../server/utils/prisma'
-import { reindexAllAiKnowledge } from '../server/utils/ai-retrieval'
-import { EXTENDED_AI_KNOWLEDGE_ENTRIES } from '../server/utils/ai-knowledge-pack'
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "#prisma-client";
+import { reindexAllAiKnowledge } from '../utils/ai-retrieval'
+import { EXTENDED_AI_KNOWLEDGE_ENTRIES } from '../utils/ai-knowledge-pack'
 import { hashPassword } from 'better-auth/crypto'
 
 type LocaleKey = 'en' | 'es'
@@ -36,6 +37,9 @@ type SeedWorkflow = {
   selectedStepId: string
   steps: SeedStep[]
 }
+
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" });
+const prisma = new PrismaClient({ adapter });
 
 function localized(en: string, es: string) {
   return { en, es }
