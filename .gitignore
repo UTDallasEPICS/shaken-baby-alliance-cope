@@ -18,7 +18,12 @@ logs
 .fleet
 .idea
 .claude
+.gemini
 .temp
+coverage
+*.sqlite
+*.sqlite-*
+*.db-journal
 
 # Local env files
 .env

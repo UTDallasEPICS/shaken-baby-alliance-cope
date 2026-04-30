@@ -1910,6 +1910,7 @@ watch(selectedStep, (step) => {
 
 watch(activeFlowId, () => {
   previewStepId.value = selectedStep.value?.id || orderedSteps.value[0]?.id || null
+  nextTick(() => fitCanvas())
 })
 
 watch(
@@ -1931,6 +1932,7 @@ onMounted(() => {
   previewStepId.value = selectedStep.value?.id || orderedSteps.value[0]?.id || null
   saveHistory()
   workflowPersistenceReady.value = true
+  nextTick(() => fitCanvas())
   window.addEventListener('pointermove', handlePointerMove)
   window.addEventListener('pointerup', handlePointerUp)
 })

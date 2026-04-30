@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import AppHeader from '~/components/AppHeader.vue'
+import AppToast from '~/components/AppToast.vue'
+import ConfirmDialog from '~/components/ConfirmDialog.vue'
+import SidebarNav from '~/components/SidebarNav.vue'
+
 const workflowMaximized = useState('workflow-builder-maximized', () => false)
 const workflowCanvasMaximized = useState('workflow-canvas-maximized', () => false)
 const route = useRoute()

@@ -31,6 +31,33 @@ const stats = computed(() => {
 const keywordOptions = computed(() => data.value?.keywordOptions ?? ['All Keywords'])
 const logs = computed(() => data.value?.logs ?? [])
 
+const PAGE_SIZE = 30
+const currentPage = ref(1)
+
+watch(logs, () => { currentPage.value = 1 })
+
+const totalPages = computed(() => Math.max(1, Math.ceil(logs.value.length / PAGE_SIZE)))
+const pagedLogs = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return logs.value.slice(start, start + PAGE_SIZE)
+})
+const pageStart = computed(() => Math.min((currentPage.value - 1) * PAGE_SIZE + 1, logs.value.length))
+const pageEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, logs.value.length))
+
+const pageNumbers = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1) as (number | string)[]
+  const pages: (number | string)[] = [1]
+  if (cur > 3) pages.push('…')
+  const lo = Math.max(2, cur - 1)
+  const hi = Math.min(total - 1, cur + 1)
+  for (let i = lo; i <= hi; i++) pages.push(i)
+  if (cur < total - 2) pages.push('…')
+  if (total > 1) pages.push(total)
+  return pages
+})
+
 function keywordBadgeColor(keyword: string) {
   if (keyword === 'EMERGENCY') return 'error'
   if (keyword === 'CRISIS') return 'warning'
@@ -173,7 +200,7 @@ async function exportPDF() {
           </thead>
           <tbody>
             <tr
-              v-for="log in logs"
+              v-for="log in pagedLogs"
               :key="log.id"
               class="border-t border-[#f1f5f9] row-hover"
             >
@@ -194,6 +221,38 @@ async function exportPDF() {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="!loading && totalPages > 1" class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-[#f1f5f9]">
+        <p class="text-xs text-[#64748b]">
+          Showing {{ pageStart }}–{{ pageEnd }} of {{ logs.length }} logs
+        </p>
+        <div class="flex items-center gap-1">
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e7edf3] text-[#475569] hover:bg-[#f8fbff] disabled:opacity-40 disabled:cursor-not-allowed transition"
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+          >
+            <UIcon name="i-heroicons-chevron-left-20-solid" style="width:14px;height:14px;" />
+          </button>
+          <template v-for="p in pageNumbers" :key="String(p) + '_' + pageNumbers.indexOf(p)">
+            <span v-if="typeof p === 'string'" class="px-1 text-sm text-[#94a3b8]">…</span>
+            <button
+              v-else
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition"
+              :class="currentPage === p ? 'bg-[#0f766e] text-white' : 'border border-[#e7edf3] text-[#475569] hover:bg-[#f8fbff]'"
+              @click="currentPage = p as number"
+            >{{ p }}</button>
+          </template>
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e7edf3] text-[#475569] hover:bg-[#f8fbff] disabled:opacity-40 disabled:cursor-not-allowed transition"
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+          >
+            <UIcon name="i-heroicons-chevron-right-20-solid" style="width:14px;height:14px;" />
+          </button>
+        </div>
       </div>
     </div>
   </div>

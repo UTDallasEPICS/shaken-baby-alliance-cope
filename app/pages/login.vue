@@ -13,17 +13,20 @@ const loading = ref(false)
 const handleSubmit = async () => {
   errorMsg.value = ''
   loading.value = true
+
   try {
-    const { data, error } = await authClient.signIn.email({
+    const { error } = await authClient.signIn.email({
       email: userId.value,
       password: password.value,
     })
+
     if (error) {
       errorMsg.value = 'Invalid email or password. Please try again.'
       return
     }
+
     await navigateTo('/dashboard')
-  } catch (err) {
+  } catch {
     errorMsg.value = 'An unexpected error occurred.'
   } finally {
     loading.value = false
@@ -72,7 +75,7 @@ const handleSubmit = async () => {
         </div>
       </div>
 
-      <p class="text-xs text-slate-400">© 2026 Shaken Baby Alliance. All rights reserved.</p>
+      <p class="text-xs text-slate-400">&copy; 2026 Shaken Baby Alliance. All rights reserved.</p>
     </div>
 
     <div class="flex flex-1 items-center justify-center p-6">
@@ -118,7 +121,7 @@ const handleSubmit = async () => {
               <input
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
-                placeholder="••••••••"
+                placeholder="********"
                 required
                 class="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border outline-none transition-all"
                 style="border-color: #d1d5db; color: #0f172a;"

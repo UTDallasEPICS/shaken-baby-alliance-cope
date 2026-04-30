@@ -45,6 +45,13 @@ const showAddCard = ref(false)
 const showEditModal = ref(false)
 const showDeletedSection = ref(false)
 const availableKeywords = ['HELP', 'COPE', 'CALM', 'EMERGENCY']
+const filterOpen = ref(false)
+const filterStatus = ref<'all' | 'active' | 'inactive'>('all')
+const filterContainer = ref<HTMLElement | null>(null)
+
+onMounted(() => document.addEventListener('click', (e) => {
+  if (filterContainer.value && !filterContainer.value.contains(e.target as Node)) filterOpen.value = false
+}))
 
 const emptyForm = () => ({
   name: '', phone: '', email: '', address: '', cityState: '',
@@ -77,13 +84,43 @@ const deletedCaregivers = computed(() =>
 
 const filteredActive = computed(() => {
   const q = searchQuery.value.toLowerCase()
-  if (!q) return activeCaregivers.value
-  return activeCaregivers.value.filter(c =>
+  let list = activeCaregivers.value
+  if (filterStatus.value === 'active') list = list.filter(c => c.status === 'active')
+  else if (filterStatus.value === 'inactive') list = list.filter(c => c.status === 'inactive')
+  if (!q) return list
+  return list.filter(c =>
     c.name.toLowerCase().includes(q) ||
     c.phone.includes(q) ||
     c.email.toLowerCase().includes(q) ||
     c.cityState.toLowerCase().includes(q)
   )
+})
+
+const CG_PAGE_SIZE = 30
+const cgPage = ref(1)
+
+watch(filteredActive, () => { cgPage.value = 1 })
+
+const cgTotalPages = computed(() => Math.max(1, Math.ceil(filteredActive.value.length / CG_PAGE_SIZE)))
+const pagedActive = computed(() => {
+  const start = (cgPage.value - 1) * CG_PAGE_SIZE
+  return filteredActive.value.slice(start, start + CG_PAGE_SIZE)
+})
+const cgPageStart = computed(() => (cgPage.value - 1) * CG_PAGE_SIZE + 1)
+const cgPageEnd = computed(() => Math.min(cgPage.value * CG_PAGE_SIZE, filteredActive.value.length))
+
+const cgPageNumbers = computed(() => {
+  const total = cgTotalPages.value
+  const cur = cgPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1) as (number | string)[]
+  const pages: (number | string)[] = [1]
+  if (cur > 3) pages.push('…')
+  const lo = Math.max(2, cur - 1)
+  const hi = Math.min(total - 1, cur + 1)
+  for (let i = lo; i <= hi; i++) pages.push(i)
+  if (cur < total - 2) pages.push('…')
+  if (total > 1) pages.push(total)
+  return pages
 })
 
 const filteredDeleted = computed(() => {
@@ -551,9 +588,29 @@ async function exportCaregiversPDF() {
               class="bg-transparent text-sm outline-none w-44 text-[#102a43]"
             />
           </div>
-          <button class="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#e7edf3] bg-[#f8fbff] text-[#64748b] hover:bg-[#f1f5f9] transition">
-            <UIcon name="i-heroicons-funnel-20-solid" style="width:16px;height:16px;" />
-          </button>
+          <div ref="filterContainer" class="relative">
+            <button
+              class="flex h-10 items-center gap-1.5 rounded-2xl border px-3 text-sm font-medium transition"
+              :class="filterStatus !== 'all' ? 'border-[#0f766e] bg-[#f0fdf4] text-[#0f766e]' : 'border-[#e7edf3] bg-[#f8fbff] text-[#64748b] hover:bg-[#f1f5f9]'"
+              @click="filterOpen = !filterOpen"
+            >
+              <UIcon name="i-heroicons-funnel-20-solid" style="width:15px;height:15px;" />
+              {{ filterStatus === 'all' ? 'Filter' : filterStatus === 'active' ? 'Active' : 'Inactive' }}
+              <UIcon name="i-heroicons-chevron-down-20-solid" style="width:12px;height:12px;" />
+            </button>
+            <div
+              v-if="filterOpen"
+              class="absolute right-0 z-50 mt-1 w-40 rounded-xl border border-[#e7edf3] bg-white shadow-lg overflow-hidden"
+            >
+              <button
+                v-for="opt in [{ label: 'All Caregivers', value: 'all' }, { label: 'Active Only', value: 'active' }, { label: 'Inactive Only', value: 'inactive' }]"
+                :key="opt.value"
+                class="flex w-full items-center px-4 py-2.5 text-xs hover:bg-[#f8fbff] transition"
+                :class="filterStatus === opt.value ? 'font-semibold text-[#0f766e]' : 'text-[#475569]'"
+                @click="filterStatus = opt.value as any; filterOpen = false"
+              >{{ opt.label }}</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -588,7 +645,7 @@ async function exportCaregiversPDF() {
               <td colspan="9" class="py-16 text-center text-sm text-[#64748b]">No caregivers found</td>
             </tr>
             <tr
-              v-for="c in filteredActive"
+              v-for="c in pagedActive"
               :key="c.id"
               class="border-t border-[#f1f5f9] hover:bg-[#f8fbff] transition duration-150"
             >
@@ -644,6 +701,38 @@ async function exportCaregiversPDF() {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="cgTotalPages > 1" class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-[#f1f5f9]">
+        <p class="text-xs text-[#64748b]">
+          Showing {{ cgPageStart }}–{{ cgPageEnd }} of {{ filteredActive.length }} caregivers
+        </p>
+        <div class="flex items-center gap-1">
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e7edf3] text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed transition"
+            :disabled="cgPage === 1"
+            @click="cgPage--"
+          >
+            <UIcon name="i-heroicons-chevron-left-20-solid" style="width:14px;height:14px;" />
+          </button>
+          <template v-for="p in cgPageNumbers" :key="String(p) + '_' + cgPageNumbers.indexOf(p)">
+            <span v-if="typeof p === 'string'" class="px-1 text-sm text-[#94a3b8]">…</span>
+            <button
+              v-else
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition"
+              :class="cgPage === p ? 'bg-[#0f766e] text-white' : 'border border-[#e7edf3] text-[#475569] hover:bg-[#f1f5f9]'"
+              @click="cgPage = p as number"
+            >{{ p }}</button>
+          </template>
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e7edf3] text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed transition"
+            :disabled="cgPage === cgTotalPages"
+            @click="cgPage++"
+          >
+            <UIcon name="i-heroicons-chevron-right-20-solid" style="width:14px;height:14px;" />
+          </button>
+        </div>
       </div>
     </div>
 

@@ -2,15 +2,7 @@ import 'dotenv/config'
 import { prisma } from '../server/utils/prisma'
 import { reindexAllAiKnowledge } from '../server/utils/ai-retrieval'
 import { EXTENDED_AI_KNOWLEDGE_ENTRIES } from '../server/utils/ai-knowledge-pack'
-import { randomBytes, scrypt } from 'node:crypto'
-import { promisify } from 'node:util'
-
-const scryptAsync = promisify(scrypt) as (
-  password: string,
-  salt: string,
-  keylen: number,
-  options: object
-) => Promise<Buffer>
+import { hashPassword } from 'better-auth/crypto'
 
 type LocaleKey = 'en' | 'es'
 
@@ -47,18 +39,6 @@ type SeedWorkflow = {
 
 function localized(en: string, es: string) {
   return { en, es }
-}
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString('hex')
-  const key = await scryptAsync(password.normalize('NFKC'), salt, 64, {
-    N: 16384,
-    r: 16,
-    p: 1,
-    maxmem: 128 * 1024 * 1024,
-  })
-
-  return `${salt}:${key.toString('hex')}`
 }
 
 function daysAgo(days: number, hour = 10, minute = 0) {
