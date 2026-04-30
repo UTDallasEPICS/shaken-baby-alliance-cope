@@ -1,4 +1,4 @@
-import { prisma } from '../utils/prisma'
+import { prisma } from '../../utils/prisma'
 import { buildGroundedFallback, detectEmergency, retrieveAiKnowledge } from '../../utils/ai-retrieval'
 import { generateGeminiEmbedding, generateGroundedGeminiResponse } from '../utils/ai'
 

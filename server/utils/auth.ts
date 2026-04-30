@@ -1,7 +1,7 @@
 import "dotenv/config"
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { prisma } from "./prisma"
+import { prisma } from "../../utils/prisma"
 import { emailOTP } from "better-auth/plugins/email-otp"
 import nodemailer from "nodemailer"
 import { username } from "better-auth/plugins";

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { prisma } from '../server/utils/prisma'
+import { prisma } from './prisma'
 
 const MAX_CHUNK_CHARS = 900
 const MIN_TOKEN_LENGTH = 3

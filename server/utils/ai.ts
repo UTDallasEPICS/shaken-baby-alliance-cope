@@ -1,4 +1,4 @@
-import { prisma } from './prisma'
+import { prisma } from '../../utils/prisma'
 import type { RetrievedKnowledge } from '../../utils/ai-retrieval'
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'

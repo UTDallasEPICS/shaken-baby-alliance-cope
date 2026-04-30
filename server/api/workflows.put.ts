@@ -1,4 +1,4 @@
-import { prisma } from '../utils/prisma'
+import { prisma } from '../../utils/prisma'
 import { normalizeWorkflowPayload } from '../utils/workflow-mapper'
 
 export default defineEventHandler(async (event) => {

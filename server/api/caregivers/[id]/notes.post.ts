@@ -1,5 +1,5 @@
 import { auth } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
+import { prisma } from '../../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const caregiverId = getRouterParam(event, 'id')

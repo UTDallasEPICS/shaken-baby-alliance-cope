@@ -1,4 +1,4 @@
-import { prisma } from '../utils/prisma'
+import { prisma } from '../../utils/prisma'
 import { reindexAiKnowledgeEntry } from '../../utils/ai-retrieval'
 
 const CATEGORIES = new Set(['Safety', 'Crying', 'Emergency', 'Parenting', 'Organization', 'Other'])
