@@ -40,14 +40,14 @@ const statCards = computed(() => [
     iconColor: '#2563eb',
     icon: 'i-heroicons-chat-bubble-bottom-center-text-20-solid',
   },
-  {
+  /*{
     label: 'Active Keywords',
     value: stats.value?.activeKeywords ?? 0,
     sub: 'Configured triggers',
     iconBg: '#fef3c7',
     iconColor: '#d97706',
     icon: 'i-heroicons-key-20-solid',
-  },
+  },*/
   {
     label: 'Active Workflows',
     value: stats.value?.activeWorkflow ?? 0,
@@ -56,14 +56,14 @@ const statCards = computed(() => [
     iconColor: '#7c3aed',
     icon: 'i-heroicons-arrow-path-20-solid',
   },
-  {
+  /*{
     label: 'Active Caregivers',
     value: stats.value?.activeCaregivers ?? 0,
     sub: 'Enrolled in COPE',
     iconBg: '#d1fae5',
     iconColor: '#0f766e',
     icon: 'i-heroicons-user-group-20-solid',
-  },
+  },*/
 ])
 
 function toggleKeyword(kw: string) {
@@ -204,6 +204,7 @@ watch([selectedKeywords, selectedTimeframe], () => {})
 
           <!-- Keyword filters + timeframe + total -->
           <div class="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+            <!--
             <button
               v-for="kw in keywords"
               :key="kw.label"
@@ -212,7 +213,7 @@ watch([selectedKeywords, selectedTimeframe], () => {})
                 ? `background:${kw.bg};color:${kw.color};border-color:${kw.border};`
                 : 'background:#f8fbff;color:#64748b;border-color:#e7edf3;'"
               @click="toggleKeyword(kw.label)"
-            >{{ kw.label }}</button>
+            >{{ kw.label }}</button> -->
 
             <!-- Timeframe dropdown -->
             <div class="relative">
@@ -255,6 +256,7 @@ watch([selectedKeywords, selectedTimeframe], () => {})
         </div>
       </div>
 
+      <!-- status of messages removed from recent SMS table -->
       <!-- Table -->
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -263,9 +265,9 @@ watch([selectedKeywords, selectedTimeframe], () => {})
               <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Date</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Time</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Phone Number</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Keyword</th>
+              <!-- <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Keyword</th> -->
               <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569]">Message Sent</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Status</th>
+              <!-- <th class="px-5 py-3 text-left text-xs font-semibold text-[#475569] whitespace-nowrap">Status</th> -->
             </tr>
           </thead>
           <tbody>
@@ -284,23 +286,24 @@ watch([selectedKeywords, selectedTimeframe], () => {})
                 {{ new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
               </td>
               <td class="px-5 py-3 text-sm font-medium text-[#102a43] whitespace-nowrap">{{ msg.phone }}</td>
-              <td class="px-5 py-3">
+              <!-- removing keyword column in table -->
+              <!-- <td class="px-5 py-3">
                 <span
                   v-if="msg.keywordDetected"
                   class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
                   :style="`background:${kwStyle(msg.keywordDetected).bg};color:${kwStyle(msg.keywordDetected).color};border-color:${kwStyle(msg.keywordDetected).border};`"
                 >{{ msg.keywordDetected.toUpperCase() }}</span>
                 <span v-else class="text-[#94a3b8]">—</span>
-              </td>
+              </td> -->
               <td class="px-5 py-3 text-sm text-[#475569] max-w-[280px] truncate">
                 {{ msg.messageText || '—' }}
               </td>
-              <td class="px-5 py-3 whitespace-nowrap">
+              <!-- <td class="px-5 py-3 whitespace-nowrap">
                 <span class="inline-flex items-center gap-1.5 text-xs font-semibold" :style="`color:${statusStyle(msg.status ?? msg.direction ?? '').text};`">
                   <span class="h-1.5 w-1.5 rounded-full flex-shrink-0" :style="`background:${statusStyle(msg.status ?? msg.direction ?? '').dot};`"></span>
                   {{ statusStyle(msg.status ?? msg.direction ?? '').label }}
                 </span>
-              </td>
+              </td> -->
             </tr>
           </tbody>
         </table>

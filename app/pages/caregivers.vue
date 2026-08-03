@@ -1,66 +1,76 @@
 <script setup lang="ts">
 const exportOpen = ref(false)
 
-type Status = 'active' | 'inactive' | 'deleted'
+// removing name, email, address, keywords n status because not necessary info
+
+// type Status = 'active' | 'inactive' | 'deleted'
 
 type Caregiver = {
   id: string
-  name: string
+  // name: string
   phone: string
-  email: string
+  /* email: string
   address: string
-  cityState: string
+  cityState: string */
   firstContact: string
   lastInteraction: string
-  keywords: string[]
-  status: Status
+  /* keywords: string[]
+  status: Status */
 }
 
 function mapCaregiver(c: any): Caregiver {
   return {
     id: c.id,
-    name: c.name || '',
+    // name: c.name || '',
     phone: c.phone || '',
-    email: c.email || '',
+    /* email: c.email || '',
     address: c.address || '',
-    cityState: [c.city, c.state].filter(Boolean).join(', '),
+    cityState: [c.city, c.state].filter(Boolean).join(', '), */
     firstContact: c.firstContactDate ? new Date(c.firstContactDate).toLocaleDateString() : '',
     lastInteraction: c.lastInteraction ? new Date(c.lastInteraction).toLocaleDateString() : '',
-    keywords: c.keywords || [],
-    status: c.status?.toLowerCase() === 'deleted' ? 'deleted' : c.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active',
+    // keywords: c.keywords || [],
+    // status: c.status?.toLowerCase() === 'deleted' ? 'deleted' : c.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active',
   }
 }
 
+/*
 function parseCityState(cityState: string) {
   const [city, state] = cityState.split(',').map(p => p.trim())
   return { city: city || '', state: state || '' }
-}
+} */
 
 const { confirm } = useConfirm()
 const { show: showToast } = useAppToast()
 
 const caregivers = ref<Caregiver[]>([])
 const searchQuery = ref('')
-const showAddCard = ref(false)
+
+// none of these are used anymore, no more filtering by active/inactive, removing things that deal w that
+
+/* const showAddCard = ref(false)
 const showEditModal = ref(false)
 const showDeletedSection = ref(false)
 const availableKeywords = ['HELP', 'COPE', 'CALM', 'EMERGENCY']
 const filterOpen = ref(false)
-const filterStatus = ref<'all' | 'active' | 'inactive'>('all')
+const filterStatus = ref<'all' | 'active' | 'inactive'>('all') 
 const filterContainer = ref<HTMLElement | null>(null)
 
 onMounted(() => document.addEventListener('click', (e) => {
   if (filterContainer.value && !filterContainer.value.contains(e.target as Node)) filterOpen.value = false
-}))
+})) */
 
 const emptyForm = () => ({
-  name: '', phone: '', email: '', address: '', cityState: '',
+  // name: '' 
+  phone: '', 
+  // email: '', address: '', cityState: '',
   firstContact: '', lastInteraction: '',
-  keywords: [] as string[],
-  status: 'active' as 'active' | 'inactive',
+  // keywords: [] as string[],
+  // status: 'active' as 'active' | 'inactive',
 })
+
+// no need to edit caregivers
 const form = ref(emptyForm())
-const editForm = ref<(Omit<Caregiver, 'status'> & { status: 'active' | 'inactive' }) | null>(null)
+// const editForm = ref<(Omit<Caregiver, 'status'> & { status: 'active' | 'inactive' }) | null>(null)
 
 const { data: caregiversData, error: fetchError } = await useFetch<{ caregivers: any[] }>('/api/caregivers')
 if (fetchError.value) {
@@ -69,7 +79,7 @@ if (fetchError.value) {
   caregivers.value = caregiversData.value.caregivers.map(mapCaregiver)
 }
 
-const activeCaregivers = computed(() =>
+/* const activeCaregivers = computed(() =>
   caregivers.value.filter(c => c.status !== 'deleted')
 )
 const activeOnlyCaregivers = computed(() =>
@@ -80,7 +90,7 @@ const inactiveCaregivers = computed(() =>
 )
 const deletedCaregivers = computed(() =>
   caregivers.value.filter(c => c.status === 'deleted')
-)
+) 
 
 const filteredActive = computed(() => {
   const q = searchQuery.value.toLowerCase()
@@ -94,20 +104,35 @@ const filteredActive = computed(() => {
     c.email.toLowerCase().includes(q) ||
     c.cityState.toLowerCase().includes(q)
   )
+}) */
+
+// replacing above with one filteredCaregivers function for searches
+
+const filteredCaregivers = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+
+  const list = caregivers.value
+  if (!q) return list
+
+  return list.filter(c => {
+    return (
+      c.phone.includes(q)
+    )
+  })
 })
 
 const CG_PAGE_SIZE = 30
 const cgPage = ref(1)
 
-watch(filteredActive, () => { cgPage.value = 1 })
+watch(filteredCaregivers, () => { cgPage.value = 1 })
 
-const cgTotalPages = computed(() => Math.max(1, Math.ceil(filteredActive.value.length / CG_PAGE_SIZE)))
+const cgTotalPages = computed(() => Math.max(1, Math.ceil(filteredCaregivers.value.length / CG_PAGE_SIZE)))
 const pagedActive = computed(() => {
   const start = (cgPage.value - 1) * CG_PAGE_SIZE
-  return filteredActive.value.slice(start, start + CG_PAGE_SIZE)
+  return filteredCaregivers.value.slice(start, start + CG_PAGE_SIZE)
 })
 const cgPageStart = computed(() => (cgPage.value - 1) * CG_PAGE_SIZE + 1)
-const cgPageEnd = computed(() => Math.min(cgPage.value * CG_PAGE_SIZE, filteredActive.value.length))
+const cgPageEnd = computed(() => Math.min(cgPage.value * CG_PAGE_SIZE, filteredCaregivers.value.length))
 
 const cgPageNumbers = computed(() => {
   const total = cgTotalPages.value
@@ -123,6 +148,8 @@ const cgPageNumbers = computed(() => {
   return pages
 })
 
+// removing deleted status, no need to filter 
+/*
 const filteredDeleted = computed(() => {
   const q = searchQuery.value.toLowerCase()
   if (!q) return deletedCaregivers.value
@@ -131,9 +158,11 @@ const filteredDeleted = computed(() => {
     c.phone.includes(q) ||
     c.email.toLowerCase().includes(q)
   )
-})
+}) */
 
+// caregivers are already created when they message
 // ── Add ────────────────────────────────────────────────────────────────────
+/*
 function toggleAddCard() {
   showAddCard.value = !showAddCard.value
   if (!showAddCard.value) form.value = emptyForm()
@@ -156,9 +185,11 @@ async function saveCaregiver() {
   form.value = emptyForm()
   showAddCard.value = false
   showToast('Caregiver added successfully', 'success')
-}
+} */
 
+// caregivers have no need to be edited
 // ── Edit ───────────────────────────────────────────────────────────────────
+/*
 function openEditModal(c: Caregiver) {
   editForm.value = {
     ...c,
@@ -192,9 +223,11 @@ async function saveEdit() {
   showToast('Caregiver updated successfully', 'success')
 }
 
-function cancelEdit() { showEditModal.value = false; editForm.value = null }
+function cancelEdit() { showEditModal.value = false; editForm.value = null } */
 
+// status logic is to be removed fully
 // ── Status toggle ──────────────────────────────────────────────────────────
+/*
 async function toggleStatus(c: Caregiver) {
   const newStatus = c.status === 'active' ? 'inactive' : 'active'
   const ok = await confirm(
@@ -215,12 +248,12 @@ async function toggleStatus(c: Caregiver) {
   const idx = caregivers.value.findIndex(x => x.id === c.id)
   if (idx !== -1) caregivers.value[idx] = { ...caregivers.value[idx], status: newStatus }
   showToast(`Caregiver marked as ${newStatus}`, 'success')
-}
+} */
 
 // ── Soft delete ────────────────────────────────────────────────────────────
-async function confirmDelete(id: string, name: string) {
+async function confirmDelete(id: string, phone: string) {
   const ok = await confirm(
-    `${name} will be moved to deleted records. You can restore them later.`,
+    `${phone} will be moved to deleted records. You can restore them later.`,
     'Delete Caregiver?',
     'Yes, Delete',
     true
@@ -228,12 +261,13 @@ async function confirmDelete(id: string, name: string) {
   if (!ok) return
   await $fetch('/api/caregivers', { method: 'DELETE', body: { id } })
   const idx = caregivers.value.findIndex(c => c.id === id)
-  if (idx !== -1) caregivers.value[idx] = { ...caregivers.value[idx], status: 'deleted' }
-  showDeletedSection.value = true
+  /*if (idx !== -1) caregivers.value[idx] = { ...caregivers.value[idx], status: 'deleted' }
+  showDeletedSection.value = true */
   showToast('Caregiver moved to deleted records', 'error')
-}
+} 
 
 // ── Restore ────────────────────────────────────────────────────────────────
+/*
 async function restoreCaregiver(c: Caregiver) {
   const ok = await confirm(
     `Restore ${c.name} back to active caregivers?`,
@@ -250,23 +284,26 @@ async function restoreCaregiver(c: Caregiver) {
   const idx = caregivers.value.findIndex(x => x.id === c.id)
   if (idx !== -1) caregivers.value[idx] = { ...caregivers.value[idx], status: 'active' }
   showToast('Caregiver restored successfully', 'success')
-}
+} */
 
 function viewCaregiver(c: Caregiver) {
   navigateTo(`/caregivers/${c.id}`)
 }
 
+// name, email, address, city, keywords, status not included values anymore
 function caregiverExportRows(list: Caregiver[]): Record<string, string>[] {
   return list.map(c => ({
-    Name: c.name,
+    // Name: c.name,
     'Phone Number': c.phone,
+    /*
     Email: c.email,
     Address: c.address || '-',
     'City / State': c.cityState || '-',
+    */
     'First Contact': c.firstContact || '-',
     'Last Interaction': c.lastInteraction || '-',
-    Keywords: c.keywords.join(', '),
-    Status: c.status.charAt(0).toUpperCase() + c.status.slice(1),
+    /* Keywords: c.keywords.join(', '),
+    Status: c.status.charAt(0).toUpperCase() + c.status.slice(1), */
   }))
 }
 
@@ -274,9 +311,23 @@ async function exportCaregiversExcel() {
   exportOpen.value = false
   const { utils, writeFile } = await import('xlsx')
 
-  const headers = ['Name', 'Phone Number', 'Email', 'Address', 'City / State', 'First Contact', 'Last Interaction', 'Keywords', 'Status']
+  const headers = [
+    // 'Name',
+    'Phone Number',
+    /*
+    'Email',
+    'Address',
+    'City / State',
+    */
+    'First Contact',
+    'Last Interaction'
+    /* 'Keywords',
+    'Status' */
+  ]
   const workbook = utils.book_new()
 
+  // no more status, just all one section
+  /*
   const appendSheet = (name: string, list: Caregiver[]) => {
     const rows = caregiverExportRows(list)
     const worksheet = utils.aoa_to_sheet([
@@ -289,6 +340,14 @@ async function exportCaregiversExcel() {
   appendSheet('Active', activeOnlyCaregivers.value)
   appendSheet('Inactive', inactiveCaregivers.value)
   appendSheet('Deleted', deletedCaregivers.value)
+  */
+
+  const rows = caregiverExportRows(caregivers.value)
+  const worksheet = utils.aoa_to_sheet([
+    headers,
+    ...rows.map(row => headers.map(header => row[header] ?? ''))
+  ])
+  utils.book_append_sheet(workbook, worksheet, 'Caregiver Directory')
 
   writeFile(workbook, 'caregivers-directory.xlsx')
   showToast('Caregivers exported as Excel', 'success')
@@ -300,8 +359,23 @@ async function exportCaregiversPDF() {
   const { default: autoTable } = await import('jspdf-autotable')
 
   const doc = new jsPDF({ orientation: 'landscape' })
-  const headers = [['Name', 'Phone', 'Email', 'Address', 'City / State', 'First Contact', 'Last Interaction', 'Keywords', 'Status']]
+  const headers = [[
+    //'Name',
+    'Phone',
+    /*
+    'Email',
+    'Address',
+    'City / State',
+    */
+    'First Contact',
+    'Last Interaction'
+    /* 'Keywords',
+    'Status'
+    */
+  ]]
 
+  // no need for this since no more status sections
+  /*
   const addSection = (title: string, list: Caregiver[], color: [number, number, number]) => {
     const startY = ((doc as any).lastAutoTable?.finalY ?? 20) + 12
     doc.setFontSize(13)
@@ -319,18 +393,37 @@ async function exportCaregiversPDF() {
         row['Last Interaction'],
         row.Keywords,
         row.Status,
-      ]),
+      ].filter(x => x !== undefined)),
       styles: { fontSize: 7.5 },
       headStyles: { fillColor: color },
       bodyStyles: { textColor: [16, 42, 67] },
     })
-  }
+  } */
+
+  const rows = caregiverExportRows(caregivers.value).map(row => [
+    row['Phone Number'] || '-',
+    row['First Contact'] || '-',
+    row['Last Interaction'] || '-'
+  ])
 
   doc.setFontSize(16)
   doc.text('Caregiver Directory', 14, 14)
+
+  // no more status, just all one section
+  /*
   addSection('Active Caregivers', activeOnlyCaregivers.value, [15, 118, 110])
   addSection('Inactive Caregivers', inactiveCaregivers.value, [100, 116, 139])
   addSection('Deleted Caregivers', deletedCaregivers.value, [220, 38, 38])
+  */
+
+  autoTable(doc, {
+    startY: 20,
+    head: headers,
+    body: rows,
+    styles: { fontSize: 8.5 },
+    headStyles: { fillColor: [15, 118, 110] },
+    bodyStyles: { textColor: [16, 42, 67] },
+  })
 
   doc.save('caregivers-directory.pdf')
   showToast('Caregivers exported as PDF', 'success')
@@ -340,7 +433,10 @@ async function exportCaregiversPDF() {
 <template>
   <div class="max-w-[1400px] mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
 
+    
     <div class="mx-auto grid max-w-[1240px] grid-cols-1 gap-4 xl:grid-cols-[0.9fr_0.95fr_0.85fr]">
+    <!-- removing deleted section of caregiver directory, not necessary -->
+    <!--
       <button
         class="rounded-[28px] border border-[#fee2e2] bg-white px-6 py-5 text-left shadow-[0_20px_50px_rgba(220,38,38,0.06)] transition hover:bg-[#fff8f8]"
         @click="showDeletedSection = !showDeletedSection"
@@ -362,13 +458,14 @@ async function exportCaregiversPDF() {
           />
         </div>
       </button>
+    -->
 
       <div class="rounded-[28px] border border-[#e7edf3] bg-white px-6 py-5 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
         <div class="flex items-start justify-between gap-4">
           <div>
             <p class="text-sm font-semibold text-[#64748b]">Export Caregivers</p>
             <p class="mt-3 text-3xl font-bold text-[#102a43]">{{ caregivers.length }}</p>
-            <p class="mt-2 text-sm text-[#64748b]">PDF and Excel with separate active, inactive, and deleted sections</p>
+            <!--<p class="mt-2 text-sm text-[#64748b]">PDF and Excel with separate active, inactive, and deleted sections</p> -->
           </div>
           <div class="relative">
             <button
@@ -403,6 +500,8 @@ async function exportCaregiversPDF() {
         </div>
       </div>
 
+    <!-- no need to add caregivers manually -->
+    <!--
       <button
         class="rounded-[28px] border border-[#f4df95] bg-white px-6 py-5 text-left shadow-[0_20px_50px_rgba(201,162,39,0.12)] transition hover:bg-[#fffcf2]"
         @click="toggleAddCard"
@@ -420,9 +519,11 @@ async function exportCaregiversPDF() {
           </div>
         </div>
       </button>
+    -->
     </div>
 
     <!-- ── Add Caregiver Card ────────────────────────────────────────────── -->
+    <!--
     <Transition name="slide-down">
       <div v-if="showAddCard" class="rounded-[24px] border border-[#e7edf3] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] overflow-hidden">
         <div class="flex items-center justify-between px-7 py-5 border-b border-[#f1f5f9]">
@@ -434,150 +535,148 @@ async function exportCaregiversPDF() {
           </div>
         </div>
         <div class="p-7">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            <div class="lg:col-span-3">
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Full Name <span class="text-red-500">*</span></label>
-              <UInput v-model="form.name" placeholder="e.g. Sarah Johnson" class="w-full" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Phone Number <span class="text-red-500">*</span></label>
-              <UInput v-model="form.phone" placeholder="+1 (555) 123-4567" class="w-full" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Email</label>
-              <UInput v-model="form.email" type="email" placeholder="name@email.com" class="w-full" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">City / State</label>
-              <UInput v-model="form.cityState" placeholder="Dallas, TX" class="w-full" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Address</label>
-              <UInput v-model="form.address" placeholder="123 Main St" class="w-full" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">First Contact</label>
-              <UInput v-model="form.firstContact" type="date" class="w-full" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Status</label>
-              <div class="flex gap-2 mt-1">
-                <button
-                  v-for="s in ['active', 'inactive']"
-                  :key="s"
-                  type="button"
-                  class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
-                  :class="form.status === s
-                    ? s === 'active' ? 'bg-green-500 border-green-500 text-white' : 'bg-slate-400 border-slate-400 text-white'
-                    : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#94a3b8]'"
-                  @click="form.status = s as 'active' | 'inactive'"
-                >{{ s }}</button>
+           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+             <div class="lg:col-span-3">
+               <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Full Name <span class="text-red-500">*</span></label>
+               <UInput v-model="form.name" placeholder="e.g. Sarah Johnson" class="w-full" />
+             </div>
+             <div>
+               <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Phone Number <span class="text-red-500">*</span></label>
+               <UInput v-model="form.phone" placeholder="+1 (555) 123-4567" class="w-full" />
+             </div>
+             <div>
+               <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Email</label>
+               <UInput v-model="form.email" type="email" placeholder="name@email.com" class="w-full" />
+             </div>
+             <div>
+               <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">City / State</label>
+               <UInput v-model="form.cityState" placeholder="Dallas, TX" class="w-full" />
+             </div>
+             <div>
+               <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Address</label>
+               <UInput v-model="form.address" placeholder="123 Main St" class="w-full" />
+             </div>
+             <div>
+               <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">First Contact</label>
+               <UInput v-model="form.firstContact" type="date" class="w-full" />
+             </div>
+             <div>
+               <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Status</label>
+               <div class="flex gap-2 mt-1">
+                 <button
+                   v-for="s in ['active', 'inactive']"
+                   :key="s"
+                   type="button"
+                   class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize"
+                   :class="form.status === s
+                     ? s === 'active' ? 'bg-green-500 border-green-500 text-white' : 'bg-slate-400 border-slate-400 text-white'
+                     : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#94a3b8]'"
+                   @click="form.status = s as 'active' | 'inactive'"
+                  >{{ s }}</button>
+                </div>
               </div>
-            </div>
-            <div class="lg:col-span-3">
-              <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-2">Keywords</label>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="kw in availableKeywords"
-                  :key="kw"
-                  type="button"
-                  class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
-                  :class="form.keywords.includes(kw) ? 'bg-[#0f766e] border-[#0f766e] text-white' : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#0f766e] hover:text-[#0f766e]'"
-                  @click="toggleKeyword(kw)"
-                >{{ kw }}</button>
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-end gap-3 mt-6 pt-5 border-t border-[#f1f5f9]">
-            <button
-              class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-[#e7edf3] text-[#475569] hover:bg-[#f1f5f9] transition"
-              @click="toggleAddCard"
-            >Cancel</button>
-            <button
-              class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              style="background:#c9a227;"
-              :disabled="!form.name.trim() || !form.phone.trim()"
-              @click="saveCaregiver"
-            >
-              <UIcon name="i-heroicons-plus-20-solid" style="width:14px;height:14px;display:inline;margin-right:4px;" />
-              Add Caregiver
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+              
+             <div class="lg:col-span-3">
+               <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-2">Keywords</label>
+               <div class="flex flex-wrap gap-2">
+                 <button
+                   v-for="kw in availableKeywords"
+                   :key="kw"
+                   type="button"
+                   class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
+                   :class="form.keywords.includes(kw) ? 'bg-[#0f766e] border-[#0f766e] text-white' : 'bg-transparent border-[#e7edf3] text-[#64748b] hover:border-[#0f766e] hover:text-[#0f766e]'"
+                   @click="toggleKeyword(kw)"
+                 >{{ kw }}</button>
+               </div>
+             </div>
+           </div>
+           <div class="flex justify-end gap-3 mt-6 pt-5 border-t border-[#f1f5f9]">
+             <button
+               class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-[#e7edf3] text-[#475569] hover:bg-[#f1f5f9] transition"
+               @click="toggleAddCard"
+             >Cancel</button>
+             <button
+               class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed"
+               style="background:#c9a227;"
+               :disabled="!form.phone.trim()"
+               @click="saveCaregiver"
+             >
+               <UIcon name="i-heroicons-plus-20-solid" style="width:14px;height:14px;display:inline;margin-right:4px;" />
+               Add Caregiver
+             </button>
+           </div>
+         </div>
+       </div>
+     </Transition>
+    -->
 
-    <!-- ── Active Caregivers Table ──────────────────────────────────────── -->
-    <div
-      v-if="deletedCaregivers.length > 0 && showDeletedSection"
-      class="rounded-[32px] border border-[#fee2e2] bg-white shadow-[0_8px_24px_rgba(220,38,38,0.06)] overflow-hidden"
-    >
-      <button
-        class="w-full flex items-center justify-between px-7 py-5 text-left"
-        @click="showDeletedSection = !showDeletedSection"
+      <!-- ── Deleted Caregivers Section  ───────────────────── -->
+      <!--
+      <div
+        v-if="deletedCaregivers.length > 0 && showDeletedSection"
+        class="rounded-[32px] border border-[#fee2e2] bg-white shadow-[0_8px_24px_rgba(220,38,38,0.06)] overflow-hidden"
       >
-        <div class="flex items-center gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fef2f2]">
-            <UIcon name="i-heroicons-trash-20-solid" style="width:16px;height:16px;color:#dc2626;" />
+        <button
+          class="w-full flex items-center justify-between px-7 py-5 text-left"
+          @click="showDeletedSection = !showDeletedSection"
+        >
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fef2f2]">
+              <UIcon name="i-heroicons-trash-20-solid" style="width:16px;height:16px;color:#dc2626;" />
+            </div>
+            <div>
+              <p class="text-base font-semibold text-[#991b1b]">Deleted Caregivers</p>
+              <p class="text-sm text-[#ef4444] mt-0.5">{{ deletedCaregivers.length }} record{{ deletedCaregivers.length !== 1 ? 's' : '' }} - can be restored</p>
+            </div>
           </div>
-          <div>
-            <p class="text-base font-semibold text-[#991b1b]">Deleted Caregivers</p>
-            <p class="text-sm text-[#ef4444] mt-0.5">{{ deletedCaregivers.length }} record{{ deletedCaregivers.length !== 1 ? 's' : '' }} - can be restored</p>
-          </div>
-        </div>
-        <UIcon
-          name="i-heroicons-chevron-up-20-solid"
-          style="width:18px;height:18px;color:#dc2626;"
-        />
-      </button>
+          <UIcon
+            name="i-heroicons-chevron-up-20-solid"
+            style="width:18px;height:18px;color:#dc2626;"
+          />
+        </button>
 
-      <Transition name="slide-down">
-        <div v-if="showDeletedSection" class="border-t border-[#fee2e2] overflow-x-auto">
-          <table class="w-full text-sm border-collapse">
-            <thead>
-              <tr class="bg-[#fff5f5]">
-                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Name</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Phone Number</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Email</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">City / State</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">First Contact</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="c in filteredDeleted"
-                :key="c.id"
-                class="border-t border-[#fee2e2] hover:bg-[#fff5f5] transition duration-150 opacity-75"
-              >
-                <td class="px-4 py-3 font-medium text-[#7f1d1d] whitespace-nowrap line-through decoration-[#fca5a5]">{{ c.name }}</td>
-                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.phone }}</td>
-                <td class="px-4 py-3 text-[#ef4444] truncate max-w-[170px]">{{ c.email }}</td>
-                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.cityState || 'â€”' }}</td>
-                <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.firstContact || 'â€”' }}</td>
-                <td class="px-4 py-3">
-                  <button
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#86efac] bg-[#f0fdf4] text-[#15803d] hover:bg-[#dcfce7] transition"
-                    title="Restore caregiver"
-                    @click="restoreCaregiver(c)"
-                  >
-                    <UIcon name="i-heroicons-arrow-path-20-solid" style="width:12px;height:12px;" />
-                    Restore
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </Transition>
-    </div>
+        <Transition name="slide-down">
+          <div v-if="showDeletedSection" class="border-t border-[#fee2e2] overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+               <thead>
+                 <tr class="bg-[#fff5f5]">
+                   <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Phone Number</th>
+                   <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">First Contact</th>
+                   <th class="px-4 py-3 text-left text-xs font-semibold text-[#991b1b] whitespace-nowrap">Actions</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 <tr
+                   v-for="c in filteredDeleted"
+                   :key="c.id"
+                   class="border-t border-[#fee2e2] hover:bg-[#fff5f5] transition duration-150 opacity-75"
+                 >
+                   <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.phone }}</td>
+                   <td class="px-4 py-3 text-[#ef4444] whitespace-nowrap">{{ c.firstContact || '—' }}</td>
+                   <td class="px-4 py-3">
+                    <button
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#86efac] bg-[#f0fdf4] text-[#15803d] hover:bg-[#dcfce7] transition"
+                      title="Restore caregiver"
+                      @click="restoreCaregiver(c)"
+                    >
+                      <UIcon name="i-heroicons-arrow-path-20-solid" style="width:12px;height:12px;" />
+                      Restore
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Transition>
+      </div>
+      -->
 
     <div class="rounded-[32px] border border-[#e7edf3] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-7 py-4 sm:py-5 border-b border-[#f1f5f9]">
         <div>
           <p class="text-base font-semibold text-[#102a43]">Caregiver Directory</p>
-          <p class="text-sm text-[#64748b] mt-0.5">{{ filteredActive.length }} total caregivers</p>
+          <p class="text-sm text-[#64748b] mt-0.5">{{ filteredCaregivers.length }} total caregivers</p>
         </div>
         <div class="flex items-center gap-2">
           <div class="flex h-10 items-center gap-2 rounded-2xl border border-[#e7edf3] bg-[#f8fbff] px-4">
@@ -588,6 +687,7 @@ async function exportCaregiversPDF() {
               class="bg-transparent text-sm outline-none w-44 text-[#102a43]"
             />
           </div>
+          <!--
           <div ref="filterContainer" class="relative">
             <button
               class="flex h-10 items-center gap-1.5 rounded-2xl border px-3 text-sm font-medium transition"
@@ -611,53 +711,70 @@ async function exportCaregiversPDF() {
               >{{ opt.label }}</button>
             </div>
           </div>
+        -->
         </div>
       </div>
 
       <div class="overflow-x-auto">
         <table class="caregivers-table w-full table-fixed text-sm border-collapse">
           <colgroup>
-            <col class="w-[12%]">
-            <col class="w-[11%]">
+            <!--
+            <col class="w-[20%]">
+            -->
+            <col class="w-[30%]">
+            <!--
             <col class="w-[14%]">
             <col class="w-[13%]">
             <col class="w-[11%]">
-            <col class="w-[9%]">
-            <col class="w-[10%]">
-            <col class="w-[9%]">
-            <col class="w-[11%]">
+            -->
+            <col class="w-[25%]">
+            <col class="w-[25%]">
+            <!--
+            <col class="w-[14%]">
+            -->
+            <col class="w-[20%]">
           </colgroup>
           <thead>
             <tr class="bg-[#f8fbff]">
+              <!--
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Name</th>
+              -->
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Phone Number</th>
+              <!--
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Email</th>
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Address</th>
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">City / State</th>
+              -->
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">First Contact</th>
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Last Interaction</th>
+              <!--
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Status</th>
+              -->
               <th class="px-3 py-3 text-left text-xs font-semibold text-[#475569]">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="filteredActive.length === 0">
-              <td colspan="9" class="py-16 text-center text-sm text-[#64748b]">No caregivers found</td>
+            <tr v-if="filteredCaregivers.length === 0">
+              <td colspan="4" class="py-16 text-center text-sm text-[#64748b]">No caregivers found</td>
             </tr>
             <tr
               v-for="c in pagedActive"
               :key="c.id"
               class="border-t border-[#f1f5f9] hover:bg-[#f8fbff] transition duration-150"
             >
+              <!--
               <td class="px-3 py-3 font-medium text-[#102a43] truncate">{{ c.name }}</td>
+              -->
               <td class="px-3 py-3 text-[#64748b] truncate">{{ c.phone }}</td>
+              <!--
               <td class="px-3 py-3 text-[#64748b] truncate">{{ c.email }}</td>
               <td class="px-4 py-3 text-[#64748b] whitespace-nowrap">{{ c.address || '—' }}</td>
               <td class="px-4 py-3 text-[#64748b] whitespace-nowrap">{{ c.cityState || '—' }}</td>
+              -->
               <td class="px-4 py-3 text-[#64748b] whitespace-nowrap">{{ c.firstContact || '—' }}</td>
               <td class="px-4 py-3 text-[#64748b] whitespace-nowrap">{{ c.lastInteraction || '—' }}</td>
+              <!--
               <td class="px-4 py-3 whitespace-nowrap">
-                <!-- Status toggle pill -->
                 <button
                   class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all"
                   :class="c.status === 'active'
@@ -673,8 +790,10 @@ async function exportCaregiversPDF() {
                   {{ c.status === 'active' ? 'Active' : 'Inactive' }}
                 </button>
               </td>
+              -->
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
+                  <!--
                   <button
                     class="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e7edf3] bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition"
                     title="View caregiver"
@@ -689,10 +808,11 @@ async function exportCaregiversPDF() {
                   >
                     <UIcon name="i-heroicons-pencil-square-20-solid" style="width:13px;height:13px;" />
                   </button>
+                  -->
                   <button
                     class="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e7edf3] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2] transition"
                     title="Delete"
-                    @click="confirmDelete(c.id, c.name)"
+                    @click="confirmDelete(c.id, c.phone)"
                   >
                     <UIcon name="i-heroicons-trash-20-solid" style="width:13px;height:13px;" />
                   </button>
@@ -706,7 +826,7 @@ async function exportCaregiversPDF() {
       <!-- Pagination -->
       <div v-if="cgTotalPages > 1" class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-[#f1f5f9]">
         <p class="text-xs text-[#64748b]">
-          Showing {{ cgPageStart }}–{{ cgPageEnd }} of {{ filteredActive.length }} caregivers
+          Showing {{ cgPageStart }}–{{ cgPageEnd }} of {{ filteredCaregivers.length }} caregivers
         </p>
         <div class="flex items-center gap-1">
           <button
@@ -737,11 +857,11 @@ async function exportCaregiversPDF() {
     </div>
 
     <!-- ── Deleted Caregivers Card ───────────────────────────────────────── -->
+     <!--
     <div
       v-if="false"
       class="rounded-[32px] border border-[#fee2e2] bg-white shadow-[0_8px_24px_rgba(220,38,38,0.06)] overflow-hidden"
     >
-      <!-- Collapsible header -->
       <button
         class="w-full flex items-center justify-between px-7 py-5 text-left hover:bg-[#fff5f5] transition"
         @click="showDeletedSection = !showDeletedSection"
@@ -761,7 +881,6 @@ async function exportCaregiversPDF() {
         />
       </button>
 
-      <!-- Deleted table -->
       <Transition name="slide-down">
         <div v-if="showDeletedSection" class="border-t border-[#fee2e2] overflow-x-auto">
           <table class="w-full text-sm border-collapse">
@@ -802,8 +921,10 @@ async function exportCaregiversPDF() {
         </div>
       </Transition>
     </div>
+    -->
 
-    <!-- ── Edit Modal ─────────────────────────────────────────────────────── -->
+    <!-- Edit Modal not needed anymore -->
+    <!--
     <Teleport to="body">
       <Transition name="overlay">
         <div
@@ -817,7 +938,6 @@ async function exportCaregiversPDF() {
               v-if="showEditModal"
               class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto"
             >
-              <!-- Header -->
               <div class="flex items-center justify-between px-6 py-4 border-b border-[#f1f5f9]">
                 <div class="flex items-center gap-3">
                   <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#f0fdf4]">
@@ -830,7 +950,6 @@ async function exportCaregiversPDF() {
                 </button>
               </div>
 
-              <!-- Body -->
               <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="sm:col-span-2">
                   <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Full Name <span class="text-red-500">*</span></label>
@@ -886,7 +1005,6 @@ async function exportCaregiversPDF() {
                 </div>
               </div>
 
-              <!-- Footer -->
               <div class="flex justify-end gap-3 px-6 py-4 border-t border-[#f1f5f9]">
                 <button
                   class="px-5 py-2 rounded-xl text-sm font-semibold border border-[#e7edf3] text-[#475569] hover:bg-[#f1f5f9] transition"
@@ -904,6 +1022,7 @@ async function exportCaregiversPDF() {
         </div>
       </Transition>
     </Teleport>
+  -->
 
   </div>
 </template>
@@ -923,8 +1042,9 @@ async function exportCaregiversPDF() {
 
 .caregivers-table th,
 .caregivers-table td {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
+  padding-left: 1.0rem;
+  padding-right: 1.0rem;
+  
 }
 
 .caregivers-table th {

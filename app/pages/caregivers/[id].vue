@@ -460,7 +460,7 @@ async function saveEdit() {
         </template>
         <template #footer>
           <div class="flex justify-end gap-2">
-            <UButton color="neutral" variant="outline" label="Cancel" @click="showEditModal = false" />
+            <UButton color="neutral" variant="outline" label="Cancel" @click="() => { showEditModal = false }" />
             <UButton
               color="primary"
               :label="savingEdit ? 'Saving...' : 'Save Changes'"
