@@ -57,7 +57,7 @@ function goToProfile() {
 <template>
   <header class="topbar">
     <!-- Hamburger — mobile only -->
-    <button
+    <!--<button
       class="hamburger lg:hidden"
       type="button"
       aria-label="Open navigation menu"
@@ -76,13 +76,14 @@ function goToProfile() {
         >
       </div>
     </div>
-
-    <div class="topbar-actions">
+  -->
+  <div class="topbar-actions">
+    <!--
       <button class="bell-button" type="button" aria-label="Notifications">
         <UIcon name="i-heroicons-bell-20-solid" class="bell-icon" />
         <span class="bell-dot"></span>
       </button>
-
+    -->
       <div ref="dropdownContainer" class="profile-shell">
         <button class="profile-button" type="button" @click="toggleDropdown">
           <div class="profile-avatar">{{ initials }}</div>
@@ -122,7 +123,7 @@ function goToProfile() {
   background: #ffffff;
 }
 
-.hamburger {
+/*.hamburger {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -139,7 +140,7 @@ function goToProfile() {
 
 .hamburger:hover {
   background: #f1f5f9;
-}
+}*/
 
 .topbar-search-shell {
   flex: 1;
@@ -156,7 +157,7 @@ function goToProfile() {
   background: #ffffff;
 }
 
-.topbar-search-icon {
+/*.topbar-search-icon {
   position: absolute;
   left: 14px;
   width: 18px;
@@ -215,7 +216,7 @@ function goToProfile() {
   border: 2px solid #ffffff;
   border-radius: 999px;
   background: #ef4444;
-}
+}*/
 
 .profile-shell {
   position: relative;
@@ -324,9 +325,9 @@ function goToProfile() {
 
 /* Hide profile text on small screens */
 @media (max-width: 640px) {
-  .topbar-search-input::placeholder {
+  /*.topbar-search-input::placeholder {
     font-size: 13px;
-  }
+  }*/
   .profile-copy {
     display: none;
   }

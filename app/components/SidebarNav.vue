@@ -7,10 +7,10 @@ watch(() => route.path, () => closeMobileNav())
 const navItems = [
   { label: 'Dashboard',            to: '/dashboard',    icon: 'i-heroicons-squares-2x2-20-solid' },
   { label: 'Workflow Builder',      to: '/workflows',    icon: 'i-heroicons-arrow-path-20-solid' },
-  { label: 'AI Knowledge Base',     to: '/ai-knowledge', icon: 'i-heroicons-sparkles-20-solid' },
+  // { label: 'AI Knowledge Base',     to: '/ai-knowledge', icon: 'i-heroicons-sparkles-20-solid' },
   { label: 'Caregivers',            to: '/caregivers',   icon: 'i-heroicons-user-group-20-solid' },
   { label: 'SMS Conversations',     to: '/messages',     icon: 'i-heroicons-chat-bubble-left-right-20-solid' },
-  { label: 'Message Logs',          to: '/message-logs', icon: 'i-heroicons-document-text-20-solid' },
+  // { label: 'Message Logs',          to: '/message-logs', icon: 'i-heroicons-document-text-20-solid' },
   { label: 'User Management',       to: '/users',        icon: 'i-heroicons-shield-check-20-solid' },
   { label: 'Settings',              to: '/settings',     icon: 'i-heroicons-cog-6-tooth-20-solid' },
 ]
