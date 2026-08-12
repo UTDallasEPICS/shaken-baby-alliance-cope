@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@nuxt/ui": "^4.6.1",
-    "@prisma/adapter-better-sqlite3": "^7.2.0",
+    "@prisma/adapter-better-sqlite3": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@types/nodemailer": "^7.0.4",
     "@vueuse/core": "^10.8.3",
