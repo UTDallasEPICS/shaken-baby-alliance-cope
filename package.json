@@ -9,7 +9,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
-    "build": "node --max-old-space-size=4096 ./node_modules/nuxt/bin/nuxt.mjs build",
+    "build": "nuxt build",
     "dev": "concurrently \"nuxt dev\" \"prisma studio\"",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
