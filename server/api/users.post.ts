@@ -1,24 +1,13 @@
 import { prisma } from '../../utils/prisma'
-import { randomBytes, scrypt } from 'node:crypto'
-import { promisify } from 'node:util'
-
-const scryptAsync = promisify(scrypt) as (p: string, s: string, n: number, o: object) => Promise<Buffer>
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString('hex')
-  const key = await scryptAsync(password.normalize('NFKC'), salt, 64, { N: 16384, r: 16, p: 1, maxmem: 128 * 1024 * 1024 })
-  return `${salt}:${key.toString('hex')}`
-}
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ name: string; email: string; username: string; password: string; role: string }>(event)
+  const body = await readBody<{ name: string; email: string; username: string; role: string }>(event)
 
-  if (!body.name?.trim() || !body.email?.trim() || !body.password?.trim()) {
-    throw createError({ statusCode: 400, message: 'Name, email and password are required' })
+  if (!body.name?.trim() || !body.email?.trim()) {
+    throw createError({ statusCode: 400, message: 'Name and email are required' })
   }
 
   const id = `user_${Date.now()}`
-  const passwordHash = await hashPassword(body.password)
 
   const user = await prisma.user.create({
     data: {
@@ -34,13 +23,13 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  // Create account for email OTP / better-auth compatibility
   await prisma.account.create({
     data: {
       id: `acct_${id}`,
       accountId: user.email,
-      providerId: 'credential',
+      providerId: 'email',
       userId: user.id,
-      password: passwordHash,
       createdAt: new Date(),
       updatedAt: new Date(),
     },

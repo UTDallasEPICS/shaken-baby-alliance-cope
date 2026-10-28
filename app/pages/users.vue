@@ -17,7 +17,7 @@ const searchQuery = ref('')
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 
-const emptyCreate = () => ({ name: '', email: '', username: '', password: '', role: 'user' })
+const emptyCreate = () => ({ name: '', email: '', username: '', role: 'user' })
 const createForm = ref(emptyCreate())
 const editForm = ref<UserRow | null>(null)
 
@@ -55,7 +55,7 @@ function formatDate(d: string | null) {
 
 // ── Create ────────────────────────────────────────────────────────────────
 async function saveCreate() {
-  if (!createForm.value.name.trim() || !createForm.value.email.trim() || !createForm.value.password.trim()) return
+  if (!createForm.value.name.trim() || !createForm.value.email.trim()) return
   try {
     const result = await $fetch<{ user: UserRow }>('/api/users', {
       method: 'POST',
@@ -239,10 +239,7 @@ async function confirmDelete(u: UserRow) {
                   <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Username</label>
                   <input v-model="createForm.username" placeholder="optional" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
                 </div>
-                <div>
-                  <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-1.5">Password <span class="text-red-500">*</span></label>
-                  <input v-model="createForm.password" type="password" placeholder="••••••••" class="w-full rounded-xl border border-[#e7edf3] bg-[#f8fbff] px-3 py-2 text-sm text-[#102a43] outline-none focus:border-[#0f766e] transition" />
-                </div>
+                <p class="text-xs text-[#64748b]">Users will sign in with a one-time passcode sent to their email.</p>
                 <div>
                   <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wide mb-2">Role</label>
                   <div class="flex gap-2">
@@ -266,7 +263,7 @@ async function confirmDelete(u: UserRow) {
                 <button
                   class="px-5 py-2 rounded-xl text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   style="background:#0f766e;"
-                  :disabled="!createForm.name.trim() || !createForm.email.trim() || !createForm.password.trim()"
+                  :disabled="!createForm.name.trim() || !createForm.email.trim()"
                   @click="saveCreate"
                 >Create User</button>
               </div>
