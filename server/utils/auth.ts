@@ -6,13 +6,13 @@ import { emailOTP } from "better-auth/plugins/email-otp"
 import nodemailer from "nodemailer"
 import { username } from "better-auth/plugins";
 
-/* const transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransport({
 	service: "gmail",
 	auth: {
 		user: process.env.EMAIL_USER,
 		pass: process.env.EMAIL_PASS,
 	}
-}) */
+})
 
 export const auth = betterAuth({
 	secret: process.env.BETTER_AUTH_SECRET,
@@ -27,32 +27,32 @@ export const auth = betterAuth({
 		provider: "sqlite",
 	}),
 
-	plugins:[username()],
-	emailAndPassword: {
-        enabled: true,
-    },
 	user: {
-        additionalFields: {
-            role: {
-                type: "string",
-                defaultValue: "user"
-            }
-        }
-    },
-	  session: {
+		additionalFields: {
+			role: {
+				type: "string",
+				defaultValue: "user"
+			}
+		}
+	},
+	session: {},
 
-    }
-
-	/* plugins: [
+	plugins: [
+		username(),
 		emailOTP({
 			async sendVerificationOTP({ email, otp, type }) {
-				await transporter.sendMail({
-					from: process.env.EMAIL_USER,
-					to: email,
-					subject: "OTP",
-					html: `${otp}`,
-				})
+				console.log(`[OTP] Sending verification code ${otp} to ${email} (type: ${type})`)
+				try {
+					await transporter.sendMail({
+						from: process.env.EMAIL_USER,
+						to: email,
+						subject: "Your OTP Code",
+						html: `Your verification code is: <b>${otp}</b>`,
+					})
+				} catch (err) {
+					console.error("[OTP] Failed to send email via transporter:", err)
+				}
 			}
 		})
-	] */
+	]
 });

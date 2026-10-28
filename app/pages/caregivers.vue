@@ -79,6 +79,8 @@ if (fetchError.value) {
   caregivers.value = caregiversData.value.caregivers.map(mapCaregiver)
 }
 
+// no more filtering by status
+
 /* const activeCaregivers = computed(() =>
   caregivers.value.filter(c => c.status !== 'deleted')
 )
@@ -307,6 +309,8 @@ function caregiverExportRows(list: Caregiver[]): Record<string, string>[] {
   }))
 }
 
+// removing unnecessary fields from excel sheet export
+
 async function exportCaregiversExcel() {
   exportOpen.value = false
   const { utils, writeFile } = await import('xlsx')
@@ -352,6 +356,8 @@ async function exportCaregiversExcel() {
   writeFile(workbook, 'caregivers-directory.xlsx')
   showToast('Caregivers exported as Excel', 'success')
 }
+
+// removing unnecessary fields from pdf
 
 async function exportCaregiversPDF() {
   exportOpen.value = false
@@ -465,7 +471,7 @@ async function exportCaregiversPDF() {
           <div>
             <p class="text-sm font-semibold text-[#64748b]">Export Caregivers</p>
             <p class="mt-3 text-3xl font-bold text-[#102a43]">{{ caregivers.length }}</p>
-            <!--<p class="mt-2 text-sm text-[#64748b]">PDF and Excel with separate active, inactive, and deleted sections</p> -->
+            <!-- <p class="mt-2 text-sm text-[#64748b]">PDF and Excel with separate active, inactive, and deleted sections</p> -->
           </div>
           <div class="relative">
             <button
@@ -522,6 +528,7 @@ async function exportCaregiversPDF() {
     -->
     </div>
 
+    <!-- no need to add caregivers manually -->
     <!-- ── Add Caregiver Card ────────────────────────────────────────────── -->
     <!--
     <Transition name="slide-down">
@@ -610,6 +617,7 @@ async function exportCaregiversPDF() {
      </Transition>
     -->
 
+    <!-- no need for, status removed -->
       <!-- ── Deleted Caregivers Section  ───────────────────── -->
       <!--
       <div
@@ -687,6 +695,7 @@ async function exportCaregiversPDF() {
               class="bg-transparent text-sm outline-none w-44 text-[#102a43]"
             />
           </div>
+          <!-- no need to filter by status, status gone -->
           <!--
           <div ref="filterContainer" class="relative">
             <button
@@ -715,6 +724,7 @@ async function exportCaregiversPDF() {
         </div>
       </div>
 
+      <!-- removing useless fields from caregiver directory -->
       <div class="overflow-x-auto">
         <table class="caregivers-table w-full table-fixed text-sm border-collapse">
           <colgroup>
@@ -856,6 +866,7 @@ async function exportCaregiversPDF() {
       </div>
     </div>
 
+    <!-- no need for anymore -->
     <!-- ── Deleted Caregivers Card ───────────────────────────────────────── -->
      <!--
     <div
@@ -1044,7 +1055,6 @@ async function exportCaregiversPDF() {
 .caregivers-table td {
   padding-left: 1.0rem;
   padding-right: 1.0rem;
-  
 }
 
 .caregivers-table th {

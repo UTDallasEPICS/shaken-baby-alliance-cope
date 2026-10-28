@@ -29,6 +29,8 @@ const keywords = [
   { label: 'CALM',      color: '#b45309', bg: 'rgba(245,158,11,0.12)',  border: '#fcd34d' },
 ]
 
+// removed active caregivers + active keywords cards
+
 const statCards = computed(() => [
   {
     label: 'Messages Sent Today',
@@ -202,6 +204,7 @@ watch([selectedKeywords, selectedTimeframe], () => {})
             <p class="mt-0.5 text-sm text-[#64748b]">Latest SMS interactions with caregivers</p>
           </div>
 
+          <!-- keyword filters removed -->
           <!-- Keyword filters + timeframe + total -->
           <div class="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
             <!--

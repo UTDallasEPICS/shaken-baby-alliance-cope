@@ -4,24 +4,47 @@ definePageMeta({ layout: false })
 import { ref } from 'vue'
 import { authClient } from '~/utils/auth-client'
 
-const userId = ref('')
-const password = ref('')
-const showPassword = ref(false)
+const email = ref('')
+const otp = ref('')
+const isOtpSent = ref(false)
 const errorMsg = ref('')
 const loading = ref(false)
 
-const handleSubmit = async () => {
+const handleSendOtp = async () => {
   errorMsg.value = ''
   loading.value = true
 
   try {
-    const { error } = await authClient.signIn.email({
-      email: userId.value,
-      password: password.value,
+    const { error } = await authClient.emailOtp.sendVerificationOtp({
+      email: email.value,
+      type: 'sign-in',
     })
 
     if (error) {
-      errorMsg.value = 'Invalid email or password. Please try again.'
+      errorMsg.value = error.message || 'Failed to send verification code. Please try again.'
+      return
+    }
+
+    isOtpSent.value = true
+  } catch {
+    errorMsg.value = 'An unexpected error occurred.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleVerifyOtp = async () => {
+  errorMsg.value = ''
+  loading.value = true
+
+  try {
+    const { error } = await authClient.signIn.emailOtp({
+      email: email.value,
+      otp: otp.value,
+    })
+
+    if (error) {
+      errorMsg.value = 'Invalid or expired code. Please try again.'
       return
     }
 
@@ -32,10 +55,18 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
+
+const handleSubmit = async () => {
+  if (!isOtpSent.value) {
+    await handleSendOtp()
+  } else {
+    await handleVerifyOtp()
+  }
+}
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-[#f8fafc]" style="background: #f8fafc;">
+  <div class="min-h-screen flex bg-[#f8fafc] p-4 lg:p-6 lg:gap-6" style="background: #f8fafc;">
     <div class="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-white shadow-sm rounded-[32px] border border-[#e5e7eb]">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: #C9A227;">
@@ -100,11 +131,12 @@ const handleSubmit = async () => {
                 <UIcon name="i-heroicons-envelope-20-solid" class="w-4 h-4" style="color: #2D7A4F;" />
               </div>
               <input
-                v-model="userId"
+                v-model="email"
                 type="email"
                 placeholder="you@example.com"
                 required
-                class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border outline-none transition-all"
+                :disabled="isOtpSent"
+                class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border outline-none transition-all disabled:bg-slate-50 disabled:text-slate-500"
                 style="border-color: #d1d5db; color: #0f172a;"
                 @focus="(e) => (e.target as HTMLElement).style.borderColor = '#2D7A4F'"
                 @blur="(e) => (e.target as HTMLElement).style.borderColor = '#d1d5db'"
@@ -112,32 +144,42 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <div>
-            <label class="block text-xs font-semibold mb-1.5 text-slate-700">Password</label>
+          <div v-if="isOtpSent">
+            <label class="block text-xs font-semibold mb-1.5 text-slate-700">Verification Code</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <UIcon name="i-heroicons-lock-closed-20-solid" class="w-4 h-4" style="color: #2D7A4F;" />
+                <UIcon name="i-heroicons-key-20-solid" class="w-4 h-4" style="color: #2D7A4F;" />
               </div>
               <input
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="********"
+                v-model="otp"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="Enter 6-digit code"
                 required
-                class="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border outline-none transition-all"
+                class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border outline-none transition-all tracking-widest"
                 style="border-color: #d1d5db; color: #0f172a;"
                 @focus="(e) => (e.target as HTMLElement).style.borderColor = '#2D7A4F'"
                 @blur="(e) => (e.target as HTMLElement).style.borderColor = '#d1d5db'"
               />
+            </div>
+            <div class="mt-2 flex justify-between items-center">
               <button
                 type="button"
-                @click="showPassword = !showPassword"
-                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500"
-                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                @click="isOtpSent = false; otp = ''; errorMsg = ''"
+                class="text-xs font-medium hover:underline"
+                style="color: #C9A227;"
               >
-                <UIcon
-                  :name="showPassword ? 'i-heroicons-eye-slash-20-solid' : 'i-heroicons-eye-20-solid'"
-                  class="w-5 h-5"
-                />
+                Change email
+              </button>
+              <button
+                type="button"
+                @click="handleSendOtp"
+                :disabled="loading"
+                class="text-xs font-medium hover:underline disabled:opacity-50"
+                style="color: #2D7A4F;"
+              >
+                Resend code
               </button>
             </div>
           </div>
@@ -146,18 +188,14 @@ const handleSubmit = async () => {
             {{ errorMsg }}
           </div>
 
-          <div class="flex justify-end">
-            <a href="#" class="text-xs font-medium" style="color: #C9A227;">Forgot password?</a>
-          </div>
-
           <button
             type="submit"
-            :disabled="loading"
+            :disabled="loading || (isOtpSent && otp.length !== 6) || (!isOtpSent && !email)"
             class="w-full py-3 px-4 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity"
-            :style="loading ? 'background-color: #2D7A4F; opacity: 0.7;' : 'background-color: #2D7A4F;'"
+            :style="(loading || (isOtpSent && otp.length !== 6) || (!isOtpSent && !email)) ? 'background-color: #2D7A4F; opacity: 0.5;' : 'background-color: #2D7A4F;'"
           >
             <UIcon v-if="loading" name="i-heroicons-arrow-path-20-solid" class="w-4 h-4 animate-spin" />
-            <span>{{ loading ? 'Signing in...' : 'Sign In' }}</span>
+            <span>{{ loading ? 'Please wait...' : (isOtpSent ? 'Verify & Sign In' : 'Send Verification Code') }}</span>
             <UIcon v-if="!loading" name="i-heroicons-arrow-right-20-solid" class="w-4 h-4" />
           </button>
         </form>
