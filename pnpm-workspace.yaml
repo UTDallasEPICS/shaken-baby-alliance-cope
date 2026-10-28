@@ -1,15 +1,10 @@
 allowBuilds:
-  '@parcel/watcher': true
-  '@prisma/engines': true
+  "@parcel/watcher": true
+  "@prisma/engines": true
   better-sqlite3: true
   core-js: true
   esbuild: true
   prisma: true
   vue-demi: true
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@prisma/engines'
-  - better-sqlite3
-  - esbuild
-  - prisma
-  - vue-demi
+publicHoistPattern:
+  - "*types*"
